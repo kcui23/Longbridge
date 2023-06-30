@@ -334,5 +334,5 @@ date_string_yesterday = today.strftime("%Y-%m-%d")
 
 for x in tickers:
     print(date_string_today, x)
-    print_day_trade(plotOneMinute(x, "2023-06-29"), 10000)
+    # print_day_trade(plotOneMinute(x, "2023-06-29"), 10000)
     # print_day_trade(plotOneDay(x, "2022-01-01", date_string_today), 10000)
