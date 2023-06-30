@@ -75,9 +75,10 @@ def print_day_trade(df, principle):
 def plotVerticalLines(df, ax):
     for i in range(len(df)):
         x = df["Datetime"][i]
-        if df["BuyIndex"][i] == "Buy":
+        current = df["BuyIndex"][i]
+        if current == "Buy" or current == "PotentialBuy":
             ax.axvline(x=x, ymin=0, ymax=3.5, c="#ff2f92", linewidth=0.5, alpha=1, zorder=0, clip_on=False)
-        elif df["BuyIndex"][i] == "Sell":
+        elif current == "Sell" or current == "PotentialSell":
             ax.axvline(x=x, ymin=0.2, ymax=3.5, c="#0055cc", linewidth=0.5, alpha=1, zorder=0, clip_on=False)
 
 
@@ -104,22 +105,29 @@ def find_signals(df):
     # Initialize an empty column for signals
     df["BuyIndex"] = ""
     flag = False
+
     buy_tick = True  # True: to buy, False: to hold or sell
 
     for i in range(len(df)):
         if flag:
-            if buy_tick and df["DIF"][i] > df["DEM"][i] and df["DIF"][i - 1] < df["DEM"][i - 1] and \
+            if df["DIF"][i] > df["DEM"][i] and df["DIF"][i - 1] < df["DEM"][i - 1] and \
                     df["Histogram"][i] <= 0 and df["DIF"][i] < 0 and df["RSI"][i] <= 100 and (
                     df["J"][i] > df["K"][i] and df["J"][i] > df["D"][i]):
 
-                df.iloc[i, df.columns.get_loc("BuyIndex")] = "Buy"
-                buy_tick = False
-            elif not buy_tick and df["DIF"][i] < df["DEM"][i] and df["DIF"][i - 1] > df["DEM"][i - 1] and \
+                if buy_tick:
+                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "Buy"
+                    buy_tick = False
+                elif not buy_tick:
+                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
+            elif df["DIF"][i] < df["DEM"][i] and df["DIF"][i - 1] > df["DEM"][i - 1] and \
                     df["Histogram"][i] > 0 and df["DEM"][i] > 0 and df["RSI"][i] >= 0 and (
                     df["J"][i] < df["K"][i] and df["J"][i] < df["D"][i]):
 
-                df.iloc[i, df.columns.get_loc("BuyIndex")] = "Sell"
-                buy_tick = True
+                if not buy_tick:
+                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "Sell"
+                    buy_tick = True
+                elif buy_tick:
+                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialSell"
             else:
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "Hold"
 
@@ -212,7 +220,7 @@ def calculateDF(df):
     # Convert date column to datetime format
     df["Datetime"] = pd.to_datetime(df.index)
 
-    # Calculate MACD, RSI, KDJ using ta library
+    # Calculate MACD, RSI, KDJ, CCI using ta library
     df["DIF"] = ta.trend.MACD(df["Close"], window_slow=26, window_fast=12).macd()
     df["DEM"] = df["DIF"].ewm(span=9).mean()
     df["Histogram"] = df["DIF"] - df["DEM"].ewm(span=9).mean()
@@ -222,6 +230,8 @@ def calculateDF(df):
     df["K"] = ta.momentum.StochasticOscillator(df["High"], df["Low"], df["Close"], window=9).stoch()
     df["D"] = df["K"].ewm(com=2).mean()
     df["J"] = 3 * df["K"] - 2 * df["D"]
+
+    df["CCI"] = ta.trend.CCIIndicator(df["High"], df["Low"], df["Close"], window=20, constant=0.015).cci()
 
     return df
 
@@ -312,7 +322,7 @@ date_string_today = today.strftime("%Y-%m-%d")
 date_string_yesterday = today.strftime("%Y-%m-%d")
 
 print_day_trade(plotOneDay("NVDA", "2020-01-01", date_string_today), 10000)
-print_day_trade(plotOneMinute("NVDA", "2023-06-28"), 10000)
+print_day_trade(plotOneMinute("NVDA", "2023-06-29"), 10000)
 
 # for x in tickers:
 #     print(date_string_today, x)
