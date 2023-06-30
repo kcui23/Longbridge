@@ -6,6 +6,7 @@ import pandas as pd
 import yfinance as yf
 import ta
 from datetime import datetime, timedelta
+import pendulum
 
 
 def calculate_commission(price, position, direction):
@@ -66,7 +67,7 @@ def print_day_trade(df, principle):
             df.iloc[i, df.columns.get_loc("Position")] = df["Position"][i - 1]
 
         if direction == "Buy" or direction == "Sell":
-            print("%s\t%4s\t$%5.2f\t@%4d\tCommission: $%4.2f\tBalance: %10s\tTotal: %10s" % (
+            print("%s\t%4s\t%5.2f\t@%4d\tCommission: %4.2f\tBalance: %10s\tTotal: %10s" % (
                 df["Datetime"][i], direction, df["Low"][i], position, df["Commission"][i], f"{balance:,.2f}",
                 f"{balance + df['Close'][i] * df['Position'][i]:,.2f}"))
 
@@ -102,21 +103,19 @@ def markBuyAndSell(df, ax):
 def find_signals(df):
     # Initialize an empty column for signals
     df["BuyIndex"] = ""
-
     flag = False
-
     buy_tick = True  # True: to buy, False: to hold or sell
 
     for i in range(len(df)):
         if flag:
             if buy_tick and df["DIF"][i] > df["DEM"][i] and df["DIF"][i - 1] < df["DEM"][i - 1] and \
-                    df["Histogram"][i] <= 0 and df["RSI"][i] <= 100 and (
+                    df["Histogram"][i] <= 0 and df["DIF"][i] < 0 and df["RSI"][i] <= 100 and (
                     df["J"][i] > df["K"][i] and df["J"][i] > df["D"][i]):
 
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "Buy"
                 buy_tick = False
             elif not buy_tick and df["DIF"][i] < df["DEM"][i] and df["DIF"][i - 1] > df["DEM"][i - 1] and \
-                    df["Histogram"][i] > 0 and df["RSI"][i] >= 0 and (
+                    df["Histogram"][i] > 0 and df["DEM"][i] > 0 and df["RSI"][i] >= 0 and (
                     df["J"][i] < df["K"][i] and df["J"][i] < df["D"][i]):
 
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "Sell"
@@ -132,7 +131,7 @@ def find_signals(df):
     return df
 
 
-def plotCandlestick(df, ax, ticker, startTime, endTime):
+def plotCandlestick(df, ax, ticker):
     mc = mpf.make_marketcolors(up='#0055cc', down='#ff2f92', edge='inherit', wick='inherit',
                                volume='inherit')
     s = mpf.make_mpf_style(base_mpf_style='starsandstripes', rc={'font.size': 6},
@@ -140,9 +139,9 @@ def plotCandlestick(df, ax, ticker, startTime, endTime):
 
     # plot the candlestick chart on ax
     mpf.plot(df, type="candle", ax=ax, style=s, warn_too_much_data=10000000)
-    ax.set_ylabel("%s (%s %s)" % (ticker, startTime, endTime))
+    ax.set_ylabel("%s" % ticker)
     ax.yaxis.set_label_position("right")
-    ax.yaxis.set_ticks_position("right")
+    # ax.yaxis.set_ticks_position("right")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["bottom"].set_visible(False)
@@ -245,7 +244,7 @@ def plotOneDay(ticker, startTime, endTime):
     ax3 = plt.subplot2grid((8, 1), (6, 0), rowspan=1)
     ax4 = plt.subplot2grid((8, 1), (7, 0), rowspan=1)
 
-    plotCandlestick(df, ax1, ticker, startTime, endTime)
+    plotCandlestick(df, ax1, ticker)
     plotMACD(df, ax2, date_format)
     plotRSI(df, ax3)
     plotKDJ(df, ax4)
@@ -260,15 +259,17 @@ def plotOneDay(ticker, startTime, endTime):
     return df
 
 
-def plotOneMinute(ticker, startTime, endTime):
+def plotOneMinute(ticker, tradeDay):
     # define the ticker symbol
     date_format = mdates.DateFormatter("%H:%M")
 
     # get data using download method
+
+    startTime = pendulum.parse(tradeDay + " 00:00")
+    endTime = pendulum.parse(tradeDay + " 23:59")
     df = yf.download(ticker, start=startTime, end=endTime, interval="1m")
 
     # convert the index to Eastern Time and remove the timezone
-    # df.index = df.index.tz_convert("US/Eastern").tz_localize(None)
     df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
     df = calculateDF(df)
     df = find_signals(df)
@@ -282,7 +283,7 @@ def plotOneMinute(ticker, startTime, endTime):
     ax3 = plt.subplot2grid((8, 1), (6, 0), rowspan=1)
     ax4 = plt.subplot2grid((8, 1), (7, 0), rowspan=1)
 
-    plotCandlestick(df, ax1, ticker, startTime, endTime)
+    plotCandlestick(df, ax1, ticker)
     plotMACD(df, ax2, date_format)
     plotRSI(df, ax3)
     plotKDJ(df, ax4)
@@ -293,7 +294,7 @@ def plotOneMinute(ticker, startTime, endTime):
     markBuyAndSell(df, ax4)
 
     # save the figure
-    fig.savefig("1m %-5s %s %s.png" % (ticker, startTime, endTime), transparent=True)
+    fig.savefig("1m %-5s %s.png" % (ticker, tradeDay), transparent=True)
     return df
 
 
@@ -310,9 +311,10 @@ yesterday = today - timedelta(days=1)
 date_string_today = today.strftime("%Y-%m-%d")
 date_string_yesterday = today.strftime("%Y-%m-%d")
 
-print_day_trade(plotOneMinute("V", "2023-06-29", date_string_today), 10000)
-print_day_trade(plotOneDay("V", "2018-01-01", date_string_today), 10000)
+print_day_trade(plotOneDay("NVDA", "2020-01-01", date_string_today), 10000)
+print_day_trade(plotOneMinute("NVDA", "2023-06-28"), 10000)
 
 # for x in tickers:
-#     print_day_trade(plotOneMinute(x, "2023-06-29", date_string_today), 10000)
+#     print(date_string_today, x)
+#     print_day_trade(plotOneMinute(x, "2023-06-28"), 10000)
 #     print_day_trade(plotOneDay(x, "2021-01-01", date_string_today), 10000)
