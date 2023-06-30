@@ -120,7 +120,7 @@ def find_signals(df):
                 elif not buy_tick:
                     df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
             elif df["DIF"][i] < df["DEM"][i] and df["DIF"][i - 1] > df["DEM"][i - 1] and \
-                    df["Histogram"][i] > 0 and df["DEM"][i] > 0 and df["RSI"][i] >= 0 and (
+                    df["Histogram"][i] > 0 and df["DIF"][i] > 0 and df["RSI"][i] >= 0 and (
                     df["J"][i] < df["K"][i] and df["J"][i] < df["D"][i]):
 
                 if not buy_tick:
@@ -147,7 +147,8 @@ def plotCandlestick(df, ax, ticker):
 
     # plot the candlestick chart on ax
     mpf.plot(df, type="candle", ax=ax, style=s, warn_too_much_data=10000000)
-    ax.set_ylabel("%s" % ticker)
+    now = datetime.now()
+    ax.set_ylabel("%s @ %s" % (ticker, now.strftime("%d/%m/%y %H:%M:%S")))
     ax.yaxis.set_label_position("right")
     # ax.yaxis.set_ticks_position("right")
     ax.spines["top"].set_visible(False)
@@ -321,10 +322,10 @@ yesterday = today - timedelta(days=1)
 date_string_today = today.strftime("%Y-%m-%d")
 date_string_yesterday = today.strftime("%Y-%m-%d")
 
-print_day_trade(plotOneDay("NVDA", "2020-01-01", date_string_today), 10000)
-print_day_trade(plotOneMinute("NVDA", "2023-06-29"), 10000)
+# print_day_trade(plotOneDay("TSLA", "2020-01-01", date_string_today), 10000)
+# print_day_trade(plotOneMinute("TSLA", "2023-06-29"), 10000)
 
-# for x in tickers:
-#     print(date_string_today, x)
-#     print_day_trade(plotOneMinute(x, "2023-06-28"), 10000)
-#     print_day_trade(plotOneDay(x, "2021-01-01", date_string_today), 10000)
+for x in tickers:
+    print(date_string_today, x)
+    print_day_trade(plotOneMinute(x, "2023-06-28"), 10000)
+    print_day_trade(plotOneDay(x, "2021-01-01", date_string_today), 10000)
