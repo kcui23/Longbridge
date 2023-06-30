@@ -93,6 +93,13 @@ def markBuyAndSell(df, ax):
                         bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.15", facecolor="#ff2f92",
                                   edgecolor="none", alpha=1))
 
+        elif df["BuyIndex"][i] == "PotentialBuy":
+            text = f"{df['Low'][i]:,.2f}"
+            ax.annotate(text, xy=(x, y), xytext=(
+                x, y), color="#ffffff", fontsize=7,
+                        bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.15", facecolor="#ff2f92",
+                                  edgecolor="none", alpha=1))
+
         elif df["BuyIndex"][i] == "Sell":
             text = "S\n" + f"{df['High'][i]:,.2f}"
             ax.annotate(text, xy=(x, y), xytext=(
@@ -327,5 +334,5 @@ date_string_yesterday = today.strftime("%Y-%m-%d")
 
 for x in tickers:
     print(date_string_today, x)
-    print_day_trade(plotOneMinute(x, "2023-06-28"), 10000)
-    print_day_trade(plotOneDay(x, "2021-01-01", date_string_today), 10000)
+    print_day_trade(plotOneMinute(x, "2023-06-29"), 10000)
+    # print_day_trade(plotOneDay(x, "2022-01-01", date_string_today), 10000)
