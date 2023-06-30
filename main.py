@@ -3,10 +3,26 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import mplfinance as mpf
 import pandas as pd
+import pandas_market_calendars as mcal
 import yfinance as yf
 import ta
 from datetime import datetime, timedelta
 import pendulum
+
+
+def generateUSTradeDays(start_date, end_date):
+    # Get NYSE and Nasdaq calendars
+    nyse = mcal.get_calendar('NYSE')
+    nasdaq = mcal.get_calendar('NASDAQ')
+
+    # Get NYSE and Nasdaq schedules
+    nyse_schedule = nyse.schedule(start_date=start_date, end_date=end_date)
+    nasdaq_schedule = nasdaq.schedule(start_date=start_date, end_date=end_date)
+
+    # Get the intersection of NYSE and Nasdaq schedules
+    trade_days = nyse_schedule.index.intersection(nasdaq_schedule.index)
+
+    return trade_days
 
 
 def calculate_commission(price, position, direction):
@@ -27,9 +43,53 @@ def calculate_buy_position(price, balance, direction):
     return 0
 
 
+def find_signals(df):
+    # Initialize an empty column for signals
+    df["BuyIndex"] = ""
+    flag_can_start = False  # Can visit df["DIF"][i - 1]
+    buy_tick = True  # True: to buy, False: to hold or sell
+
+    for i in range(len(df)):
+
+        DIF = df["DIF"][i]
+        DEM = df["DEM"][i]
+        Histogram = df["Histogram"][i]
+        RSI = df["RSI"][i]
+        K = df["K"][i]
+        D = df["D"][i]
+        J = df["J"][i]
+
+        if flag_can_start:
+
+            DIF_last = df["DIF"][i - 1]
+            DEM_last = df["DEM"][i - 1]
+
+            if DIF > DEM and DIF_last < DEM_last and Histogram <= 0 and DIF < 0 and RSI <= 100 and (J > K and J > D):
+                if buy_tick:
+                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "Buy"
+                    buy_tick = False
+                elif not buy_tick:
+                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
+            elif DIF < DEM and DIF_last > DEM_last and Histogram > 0 and DIF > 0 and RSI >= 0 and (J < K and J < D):
+                if not buy_tick:
+                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "Sell"
+                    buy_tick = True
+                elif buy_tick:
+                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialSell"
+            else:
+                df.iloc[i, df.columns.get_loc("BuyIndex")] = "Hold"
+
+        if pd.notna(DIF) and pd.notna(DEM):
+            flag_can_start = True
+            continue
+
+    # Return the data frame with signals
+    return df
+
+
 def print_day_trade(df, principle):
     """
-     This function takes a dataframe of stock prices and a principle amount as inputs
+     This function takes a dataframe of stock prices and a principal amount as inputs
     and prints the details of each buy and sell transaction based on the BuyIndex column
     It also updates the Balance, Position and Commission columns in the dataframe
     """
@@ -37,6 +97,7 @@ def print_day_trade(df, principle):
     df["Balance"] = principle
     df["Position"] = 0
     df["Commission"] = 0.00
+    total = 0.00
 
     for i in range(len(df)):
 
@@ -67,9 +128,12 @@ def print_day_trade(df, principle):
             df.iloc[i, df.columns.get_loc("Position")] = df["Position"][i - 1]
 
         if direction == "Buy" or direction == "Sell":
+            total = balance + df['Close'][i] * df['Position'][i]
             print("%s\t%4s\t%5.2f\t@%4d\tCommission: %4.2f\tBalance: %10s\tTotal: %10s" % (
                 df["Datetime"][i], direction, df["Low"][i], position, df["Commission"][i], f"{balance:,.2f}",
                 f"{balance + df['Close'][i] * df['Position'][i]:,.2f}"))
+
+    return total
 
 
 def plotVerticalLines(df, ax):
@@ -108,44 +172,6 @@ def markBuyAndSell(df, ax):
                                   edgecolor="none", alpha=1))
 
 
-def find_signals(df):
-    # Initialize an empty column for signals
-    df["BuyIndex"] = ""
-    flag = False
-
-    buy_tick = True  # True: to buy, False: to hold or sell
-
-    for i in range(len(df)):
-        if flag:
-            if df["DIF"][i] > df["DEM"][i] and df["DIF"][i - 1] < df["DEM"][i - 1] and \
-                    df["Histogram"][i] <= 0 and df["DIF"][i] < 0 and df["RSI"][i] <= 100 and (
-                    df["J"][i] > df["K"][i] and df["J"][i] > df["D"][i]):
-
-                if buy_tick:
-                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "Buy"
-                    buy_tick = False
-                elif not buy_tick:
-                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
-            elif df["DIF"][i] < df["DEM"][i] and df["DIF"][i - 1] > df["DEM"][i - 1] and \
-                    df["Histogram"][i] > 0 and df["DIF"][i] > 0 and df["RSI"][i] >= 0 and (
-                    df["J"][i] < df["K"][i] and df["J"][i] < df["D"][i]):
-
-                if not buy_tick:
-                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "Sell"
-                    buy_tick = True
-                elif buy_tick:
-                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialSell"
-            else:
-                df.iloc[i, df.columns.get_loc("BuyIndex")] = "Hold"
-
-        if pd.notna(df["DIF"][i]) and pd.notna(df["DEM"][i]):
-            flag = True
-            continue
-
-    # Return the data frame with signals
-    return df
-
-
 def plotCandlestick(df, ax, ticker):
     mc = mpf.make_marketcolors(up='#0055cc', down='#ff2f92', edge='inherit', wick='inherit',
                                volume='inherit')
@@ -157,7 +183,6 @@ def plotCandlestick(df, ax, ticker):
     now = datetime.now()
     ax.set_ylabel("%s @ %s" % (ticker, now.strftime("%d/%m/%y %H:%M:%S")))
     ax.yaxis.set_label_position("right")
-    # ax.yaxis.set_ticks_position("right")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["bottom"].set_visible(False)
@@ -282,7 +307,6 @@ def plotOneMinute(ticker, tradeDay):
     date_format = mdates.DateFormatter("%H:%M")
 
     # get data using download method
-
     startTime = pendulum.parse(tradeDay + " 00:00")
     endTime = pendulum.parse(tradeDay + " 23:59")
     df = yf.download(ticker, start=startTime, end=endTime, interval="1m")
@@ -329,10 +353,18 @@ yesterday = today - timedelta(days=1)
 date_string_today = today.strftime("%Y-%m-%d")
 date_string_yesterday = today.strftime("%Y-%m-%d")
 
-# print_day_trade(plotOneDay("TSLA", "2020-01-01", date_string_today), 10000)
-# print_day_trade(plotOneMinute("TSLA", "2023-06-29"), 10000)
+# for x in tickers:
+#     print(date_string_today, x)
+#     print_day_trade(plotOneMinute(x, "2023-06-29"), 10000)
+#     print_day_trade(plotOneDay(x, "2022-01-01", date_string_today), 10000)
 
-for x in tickers:
-    print(date_string_today, x)
-    # print_day_trade(plotOneMinute(x, "2023-06-29"), 10000)
-    # print_day_trade(plotOneDay(x, "2022-01-01", date_string_today), 10000)
+# print_day_trade(plotOneDay("NVDA", "2020-01-01", date_string_today), 10000)
+# print_day_trade(plotOneMinute("NVDA", "2023-06-27"), 10000)
+
+
+trade_days = generateUSTradeDays("2023-06-01", "2023-06-29")
+principle = 10000.00
+
+for i in trade_days:
+    trade_day = str(i)[:10]
+    principle = print_day_trade(plotOneMinute("MA", trade_day), principle)
