@@ -26,8 +26,8 @@ plotOneDay("NVDA", "2020-01-01", "2023-06-30")
 To plot the minute data of Tesla from 9:30 AM to 4:00 PM on June 27, 2023, you can call:
 
 ```python
-plotOneMinute("NVDA", "2023-06-27", "2023-06-28")
-plotOneMinute("0700.hk", "2023-06-27", "2023-06-28")
+plotOneMinute("NVDA", "2022-01-01", "2023-06-28")
+plotOneMinute("0700.hk", "2023-06-28")
 ```
 
 The functions will download the data using yfinance, calculate the indicators, and plot them using matplotlib. They will also save the figure as a PNG file in the current directory, with the name format of "{interval} {ticker} {startTime} {endTime}.png".
