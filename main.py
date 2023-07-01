@@ -1,4 +1,3 @@
-# import libraries
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import mplfinance as mpf
@@ -6,7 +5,7 @@ import pandas as pd
 import pandas_market_calendars as mcal
 import yfinance as yf
 import ta
-from datetime import datetime, timedelta
+from datetime import datetime
 import pendulum
 
 
@@ -60,17 +59,18 @@ def find_signals(df):
         J = df["J"][i]
 
         if flag_can_start:
-
             DIF_last = df["DIF"][i - 1]
             DEM_last = df["DEM"][i - 1]
 
             if DIF > DEM and DIF_last < DEM_last and Histogram <= 0 and DIF < 0 and RSI <= 100 and (J > K and J > D):
+                print("%s\tBuy  \t%.2f\t" % (df["Datetime"][i], df["Open"][1]))
                 if buy_tick:
                     df.iloc[i, df.columns.get_loc("BuyIndex")] = "Buy"
                     buy_tick = False
                 elif not buy_tick:
                     df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
             elif DIF < DEM and DIF_last > DEM_last and Histogram > 0 and DIF > 0 and RSI >= 0 and (J < K and J < D):
+                print("%s\tSell \t%.2f\t" % (df["Datetime"][i], df["Open"][i]))
                 if not buy_tick:
                     df.iloc[i, df.columns.get_loc("BuyIndex")] = "Sell"
                     buy_tick = True
@@ -88,12 +88,6 @@ def find_signals(df):
 
 
 def print_day_trade(df, principle):
-    """
-     This function takes a dataframe of stock prices and a principal amount as inputs
-    and prints the details of each buy and sell transaction based on the BuyIndex column
-    It also updates the Balance, Position and Commission columns in the dataframe
-    """
-
     df["Balance"] = principle
     df["Position"] = 0
     df["Commission"] = 0.00
@@ -129,7 +123,7 @@ def print_day_trade(df, principle):
 
         if direction == "Buy" or direction == "Sell":
             total = balance + df['Close'][i] * df['Position'][i]
-            print("%s\t%4s\t%5.2f\t@%4d\tCommission: %4.2f\tBalance: %10s\tTotal: %10s" % (
+            print("%s\t%-4s\t%5.2f\t@%4d\tCommission: %4.2f\tBalance: %10s\tTotal: %10s" % (
                 df["Datetime"][i], direction, df["Low"][i], position, df["Commission"][i], f"{balance:,.2f}",
                 f"{balance + df['Close'][i] * df['Position'][i]:,.2f}"))
 
@@ -141,9 +135,9 @@ def plotVerticalLines(df, ax):
         x = df["Datetime"][i]
         current = df["BuyIndex"][i]
         if current == "Buy" or current == "PotentialBuy":
-            ax.axvline(x=x, ymin=0, ymax=3.5, c="#ff2f92", linewidth=0.5, alpha=1, zorder=0, clip_on=False)
+            ax.axvline(x=x, ymin=0, ymax=3.2, c="#ff2f92", linewidth=0.5, alpha=1, zorder=0, clip_on=False)
         elif current == "Sell" or current == "PotentialSell":
-            ax.axvline(x=x, ymin=0.2, ymax=3.5, c="#0055cc", linewidth=0.5, alpha=1, zorder=0, clip_on=False)
+            ax.axvline(x=x, ymin=0, ymax=3.2, c="#0055cc", linewidth=0.5, alpha=1, zorder=0, clip_on=False)
 
 
 def markBuyAndSell(df, ax):
@@ -168,6 +162,13 @@ def markBuyAndSell(df, ax):
             text = "S\n" + f"{df['High'][i]:,.2f}"
             ax.annotate(text, xy=(x, y), xytext=(
                 x, y + 80), color="#ffffff", fontsize=8,
+                        bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.15", facecolor="#0055cc",
+                                  edgecolor="none", alpha=1))
+
+        elif df["BuyIndex"][i] == "PotentialSell":
+            text = f"{df['High'][i]:,.2f}"
+            ax.annotate(text, xy=(x, y), xytext=(
+                x, y), color="#ffffff", fontsize=7,
                         bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.15", facecolor="#0055cc",
                                   edgecolor="none", alpha=1))
 
@@ -231,7 +232,7 @@ def plotRSI(df, ax):
 
 
 def plotKDJ(df, ax):
-    # plot the KDJ on ax4
+    # plot the KDJ on ax
     ax.set_ylabel("KDJ")
     ax.set_xlim(min(df["Datetime"]), max(df["Datetime"]))
     ax.margins(x=0)
@@ -247,6 +248,21 @@ def plotKDJ(df, ax):
     ax.set_xticklabels([])
     ax.set_xticks([])
     ax.set_ylim(-200, 200)
+
+
+def plotVolume(df, ax):
+    ax.set_ylabel("Vol")
+    ax.set_xlim(min(df["Datetime"]), max(df["Datetime"]))
+    ax.margins(x=0)
+    ax.yaxis.set_label_position("right")
+    ax.yaxis.set_ticks_position("right")
+    ax.bar(df["Datetime"], df["Volume"], width=0.0005, color="#006d21")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["bottom"].set_visible(False)
+    ax.spines["left"].set_visible(False)
+    ax.set_xticklabels([])
+    ax.set_xticks([])
 
 
 def calculateDF(df):
@@ -274,13 +290,13 @@ def plotOneDay(ticker, startTime, endTime):
     date_format = mdates.DateFormatter("%d/%m/%y")
 
     # get data using download method
-    df = yf.download(ticker, start=startTime, end=endTime, interval="1d")
+    df = yf.download(ticker, start=startTime, end=endTime, interval="1d", progress=False)
     df = calculateDF(df)
     df = find_signals(df)
 
     # Plot stock price, MACD, KDJ, RSI using matplotlib
     plt.rcParams["font.family"] = "Menlo"
-    fig = plt.figure(figsize=(16, 8), dpi=300)
+    fig = plt.figure(figsize=(16, 9), dpi=300)
 
     ax1 = plt.subplot2grid((8, 1), (0, 0), rowspan=4)
     ax2 = plt.subplot2grid((8, 1), (4, 0), rowspan=2)
@@ -298,7 +314,7 @@ def plotOneDay(ticker, startTime, endTime):
     markBuyAndSell(df, ax4)
 
     # save the figure
-    fig.savefig("1d %-5s %s %s.png" % (ticker, startTime, endTime), transparent=True)
+    fig.savefig("1d %-5s %s %s.png" % (ticker, startTime, endTime), transparent=True, bbox_inches="tight")
     return df
 
 
@@ -309,7 +325,7 @@ def plotOneMinute(ticker, tradeDay):
     # get data using download method
     startTime = pendulum.parse(tradeDay + " 00:00")
     endTime = pendulum.parse(tradeDay + " 23:59")
-    df = yf.download(ticker, start=startTime, end=endTime, interval="1m")
+    df = yf.download(ticker, start=startTime, end=endTime, interval="1m", progress=False)
 
     # convert the index to Eastern Time and remove the timezone
     df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
@@ -318,53 +334,64 @@ def plotOneMinute(ticker, tradeDay):
 
     # Plot stock price, MACD, KDJ, RSI using matplotlib
     plt.rcParams["font.family"] = "Menlo"
-    fig = plt.figure(figsize=(16, 8), dpi=300)
+    fig = plt.figure(figsize=(16, 9), dpi=300)
 
-    ax1 = plt.subplot2grid((8, 1), (0, 0), rowspan=4)
-    ax2 = plt.subplot2grid((8, 1), (4, 0), rowspan=2)
-    ax3 = plt.subplot2grid((8, 1), (6, 0), rowspan=1)
-    ax4 = plt.subplot2grid((8, 1), (7, 0), rowspan=1)
+    ax1 = plt.subplot2grid((9, 1), (0, 0), rowspan=4)
+    ax2 = plt.subplot2grid((9, 1), (4, 0), rowspan=2)
+    ax3 = plt.subplot2grid((9, 1), (6, 0), rowspan=1)
+    ax4 = plt.subplot2grid((9, 1), (7, 0), rowspan=1)
+    ax5 = plt.subplot2grid((9, 1), (8, 0), rowspan=3)
 
     plotCandlestick(df, ax1, ticker)
     plotMACD(df, ax2, date_format)
     plotRSI(df, ax3)
     plotKDJ(df, ax4)
+    plotVolume(df, ax5)
 
     plotVerticalLines(df, ax2)
     plotVerticalLines(df, ax3)
     plotVerticalLines(df, ax4)
+    plotVerticalLines(df, ax5)
     markBuyAndSell(df, ax4)
 
     # save the figure
-    fig.savefig("1m %-5s %s.png" % (ticker, tradeDay), transparent=True)
+    fig.savefig("1m %-5s %s.png" % (ticker, tradeDay), transparent=True, bbox_inches="tight")
     return df
 
 
-today = datetime.today()
-date_string = today.strftime("%Y-%m-%d")
-
-tickers = ["NVDA", "MSFT", "META", "TSM", "GOOGL", "AMZN", "QCOM", "AMD", "ORCL", "VZ", "NFLX", "JPM", "GS", "MS",
+tickers = ["NVDA", "MSFT", "META", "TSM", "GOOGL", "AMZN", "QCOM", "AMD", "ORCL", "VZ", "NFLX", "JPM", "GS",
+           "MS",
            "WFC", "BAC",
            "V", "MA", "AXP", "CVX", "XOM", "MCD", "PEP", "KO", "PG", "ABBV", "MRK", "LLY", "UNH", "PFE", "JNJ", "SPY",
            "SPLG"]
 
 today = datetime.today()
-yesterday = today - timedelta(days=1)
+date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
-date_string_yesterday = today.strftime("%Y-%m-%d")
+principal = 10000.00
 
-# for x in tickers:
-#     print(date_string_today, x)
-#     print_day_trade(plotOneMinute(x, "2023-06-29"), 10000)
-#     print_day_trade(plotOneDay(x, "2022-01-01", date_string_today), 10000)
+# # 1. For single stock
+# try:
+#     plotOneDay("NVDA", "2022-01-01", date_string_today)
+#     plotOneMinute("NVDA", "2023-06-30")
+# except ArithmeticError as e:
+#     print(e)
 
-# print_day_trade(plotOneDay("NVDA", "2020-01-01", date_string_today), 10000)
-# print_day_trade(plotOneMinute("NVDA", "2023-06-27"), 10000)
+# 2. For all stocks in the list
+now = datetime.now()
+print("%s" % (now.strftime("%d/%m/%y %H:%M:%S")))
 
+for x in tickers:
+    print("%s" % x)
+    print_day_trade(plotOneMinute(x, "2023-06-30"), principal)
+    print_day_trade(plotOneDay(x, "2020-01-01", date_string_today), principal)
 
-trade_days = generateUSTradeDays("2023-06-01", "2023-06-29")
-principle = 10000.00
-
-for i in trade_days:
-    trade_day = str(i)[:10]
-    principle = print_day_trade(plotOneMinute("MA", trade_day), principle)
+# # 3. Day trade in recent 30 days
+# total = 0.00
+# trade_days = generateUSTradeDays("2023-06-01", "2023-06-29")
+#
+# for i in trade_days:
+#     trade_day = str(i)[:10]
+#     total += print_day_trade(plotOneMinute("ORCL", trade_day), principal) - principal
+#
+# print("Total: %10s" % f"{total:,.2f}")
