@@ -7,10 +7,10 @@ import yfinance as yf
 import ta
 import pendulum
 from datetime import datetime
-from scipy.interpolate import make_interp_spline, BSpline
+from scipy.interpolate import make_interp_spline
 
 
-def generateUSTradeDays(start_date, end_date):
+def generate_US_trade_days(start_date, end_date):
     # Get NYSE and Nasdaq calendars
     nyse = mcal.get_calendar('NYSE')
     nasdaq = mcal.get_calendar('NASDAQ')
@@ -92,10 +92,8 @@ def print_day_trade(df, principle):
     df["Balance"] = principle
     df["Position"] = 0
     df["Commission"] = 0.00
-    total = 0.00
 
     for i in range(len(df)):
-
         direction = df["BuyIndex"][i]
         balance = df["Balance"][i - 1]
         position = 0
@@ -122,16 +120,16 @@ def print_day_trade(df, principle):
             df.iloc[i, df.columns.get_loc("Balance")] = df["Balance"][i - 1]
             df.iloc[i, df.columns.get_loc("Position")] = df["Position"][i - 1]
 
+
         if direction == "Buy" or direction == "Sell":
-            total = balance + df['Close'][i] * df['Position'][i]
             print("%s\t%-4s\t%5.2f\t@%4d\tCommission: %4.2f\tBalance: %10s\tTotal: %10s" % (
                 df["Datetime"][i], direction, df["Low"][i], position, df["Commission"][i], f"{balance:,.2f}",
                 f"{balance + df['Close'][i] * df['Position'][i]:,.2f}"))
 
-    return total
+    return df
 
 
-def plotVerticalLines(df, ax):
+def plot_vertical_lines(df, ax):
     for i in range(len(df)):
         x = df["Datetime"][i]
         current = df["BuyIndex"][i]
@@ -141,7 +139,7 @@ def plotVerticalLines(df, ax):
             ax.axvline(x=x, ymin=0, ymax=3.2, c="#0055cc", linewidth=0.5, alpha=1, zorder=0, clip_on=False)
 
 
-def markBuyAndSell(df, ax):
+def mark_buy_and_sell(df, ax):
     for i in range(len(df)):
         x = df["Datetime"][i]
         y = -200
@@ -151,21 +149,18 @@ def markBuyAndSell(df, ax):
                 x, y), color="#ffffff", fontsize=8,
                         bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.15", facecolor="#ff2f92",
                                   edgecolor="none", alpha=1))
-
         elif df["BuyIndex"][i] == "PotentialBuy":
             text = f"{df['Low'][i]:,.2f}"
             ax.annotate(text, xy=(x, y), xytext=(
                 x, y), color="#ffffff", fontsize=7,
                         bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.15", facecolor="#ff2f92",
                                   edgecolor="none", alpha=1))
-
         elif df["BuyIndex"][i] == "Sell":
             text = "S\n" + f"{df['High'][i]:,.2f}"
             ax.annotate(text, xy=(x, y), xytext=(
                 x, y + 80), color="#ffffff", fontsize=8,
                         bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.15", facecolor="#0055cc",
                                   edgecolor="none", alpha=1))
-
         elif df["BuyIndex"][i] == "PotentialSell":
             text = f"{df['High'][i]:,.2f}"
             ax.annotate(text, xy=(x, y), xytext=(
@@ -174,8 +169,8 @@ def markBuyAndSell(df, ax):
                                   edgecolor="none", alpha=1))
 
 
-def plotCandlestick(df, ax, ticker):
-    mc = mpf.make_marketcolors(up='#0055cc', down='#ff2f92', edge='inherit', wick='inherit',
+def plot_candlestick(df, ax, ticker):
+    mc = mpf.make_marketcolors(up='#006d21', down='#ff2f92', edge='inherit', wick='inherit',
                                volume='inherit')
     s = mpf.make_mpf_style(base_mpf_style='starsandstripes', rc={'font.size': 6},
                            marketcolors=mc)
@@ -185,16 +180,13 @@ def plotCandlestick(df, ax, ticker):
     now = datetime.now()
     ax.set_ylabel("%s @ %s" % (ticker, now.strftime("%d/%m/%y %H:%M:%S")))
     ax.yaxis.set_label_position("right")
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.spines["bottom"].set_visible(False)
-    ax.spines["left"].set_visible(False)
+    [ax.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
     ax.set_xticklabels([])
     ax.set_xticks([])
     ax.margins(x=0)
 
 
-def plotMACD(df, ax, date_format):
+def plot_MACD(df, ax, date_format):
     # plot the MACD, signal and histogram on ax
     ax.set_ylabel("MACD")
     ax.set_xlim(min(df["Datetime"]), max(df["Datetime"]))
@@ -203,19 +195,16 @@ def plotMACD(df, ax, date_format):
     ax.xaxis.set_ticks_position("top")
     ax.yaxis.set_label_position("right")
     ax.yaxis.set_ticks_position("right")
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.spines["bottom"].set_visible(False)
-    ax.spines["left"].set_visible(False)
+    [ax.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
     ax.xaxis.set_major_formatter(date_format)
     ax.tick_params(axis="x", top=False)
     ax.plot(df["Datetime"], df["DIF"], color="#0055cc", label="DIF", linewidth=1)
     ax.plot(df["Datetime"], df["DEM"], color="#ffa500", label="DEM", linewidth=1)
-    ax.bar(df["Datetime"], df["Histogram"], width=[0.0005 if len(df) <= 390 else 1000 / len(df)],
+    ax.bar(df["Datetime"], df["Histogram"], width=[0.0005 if len(df) <= 390 else 2000 / len(df)],
            color=["#006d21" if x >= 0 else "#ff2f92" for x in df["Histogram"]])
 
 
-def plotRSI(df, ax):
+def plot_RSI(df, ax):
     # plot the RSI on ax
     ax.set_ylabel("RSI")
     ax.set_xlim(min(df["Datetime"]), max(df["Datetime"]))
@@ -223,16 +212,13 @@ def plotRSI(df, ax):
     ax.yaxis.set_label_position("right")
     ax.yaxis.set_ticks_position("right")
     ax.plot(df["Datetime"], df["RSI"], label="RSI", color="#ff2f92", linewidth=1)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.spines["bottom"].set_visible(False)
-    ax.spines["left"].set_visible(False)
+    [ax.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
     ax.set_xticklabels([])
     ax.set_xticks([])
     ax.set_ylim(0, 100)
 
 
-def plotKDJ(df, ax):
+def plot_KDJ(df, ax):
     # plot the KDJ on ax
     ax.set_ylabel("KDJ")
     ax.set_xlim(min(df["Datetime"]), max(df["Datetime"]))
@@ -242,38 +228,32 @@ def plotKDJ(df, ax):
     ax.plot(df["Datetime"], df["K"], label="K", color="#ff2f92", linewidth=1)
     ax.plot(df["Datetime"], df["D"], label="D", color="#0055cc", linewidth=1)
     ax.plot(df["Datetime"], df["J"], label="J", color="#ffa500", linewidth=1)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.spines["bottom"].set_visible(False)
-    ax.spines["left"].set_visible(False)
+    [ax.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
     ax.set_xticklabels([])
     ax.set_xticks([])
     ax.set_ylim(-200, 200)
 
 
-def plotVolume(df, ax):
+def plot_Volume(df, ax):
     ax.set_ylabel("Vol")
     ax.set_xlim(min(df["Datetime"]), max(df["Datetime"]))
     ax.margins(x=0)
     ax.yaxis.set_label_position("right")
     ax.yaxis.set_ticks_position("right")
     ax.bar(df["Datetime"], df["Volume"], width=0.0005, color="#006d21")
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.spines["bottom"].set_visible(False)
-    ax.spines["left"].set_visible(False)
+    [ax.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
     ax.set_ylim(top=max(df["Volume"]))
     ax.set_xticklabels([])
     ax.set_xticks([])
 
     # Add a smooth fitting line based on df["Volume"]
-    xNew = pd.date_range(df["Datetime"].min(), df["Datetime"].max(), periods=300)
+    x_new = pd.date_range(df["Datetime"].min(), df["Datetime"].max(), periods=300)
     spl = make_interp_spline(df["Datetime"], df["Volume"], k=3)
-    volume_smooth = spl(xNew)
-    plt.plot(xNew, volume_smooth * 4, color="#ffa500", linewidth=1)
+    volume_smooth = spl(x_new)
+    plt.plot(x_new, volume_smooth * 4, color="#ffa500", linewidth=1)
 
 
-def calculateDF(df):
+def calculate_df(df):
     # Convert date column to datetime format
     df["Datetime"] = pd.to_datetime(df.index)
 
@@ -293,13 +273,13 @@ def calculateDF(df):
     return df
 
 
-def plotOneDay(ticker, startTime, endTime):
+def plotOneDay(ticker, start_time, end_time):
     # define the ticker symbol
     date_format = mdates.DateFormatter("%d/%m/%y")
 
     # get data using download method
-    df = yf.download(ticker, start=startTime, end=endTime, interval="1d", progress=False)
-    df = calculateDF(df)
+    df = yf.download(ticker, start=start_time, end=end_time, interval="1d", progress=False)
+    df = calculate_df(df)
     df = find_signals(df)
 
     # Plot stock price, MACD, KDJ, RSI using matplotlib
@@ -311,33 +291,33 @@ def plotOneDay(ticker, startTime, endTime):
     ax3 = plt.subplot2grid((8, 1), (6, 0), rowspan=1)
     ax4 = plt.subplot2grid((8, 1), (7, 0), rowspan=1)
 
-    plotCandlestick(df, ax1, ticker)
-    plotMACD(df, ax2, date_format)
-    plotRSI(df, ax3)
-    plotKDJ(df, ax4)
+    plot_candlestick(df, ax1, ticker)
+    plot_MACD(df, ax2, date_format)
+    plot_RSI(df, ax3)
+    plot_KDJ(df, ax4)
 
-    plotVerticalLines(df, ax2)
-    plotVerticalLines(df, ax3)
-    plotVerticalLines(df, ax4)
-    markBuyAndSell(df, ax4)
+    plot_vertical_lines(df, ax2)
+    plot_vertical_lines(df, ax3)
+    plot_vertical_lines(df, ax4)
+    mark_buy_and_sell(df, ax4)
 
     # save the figure
-    fig.savefig("1d %-5s %s %s.png" % (ticker, startTime, endTime), transparent=True, bbox_inches="tight")
+    fig.savefig("1d %-5s %s %s.png" % (ticker, start_time, end_time), transparent=True, bbox_inches="tight")
     return df
 
 
-def plotOneMinute(ticker, tradeDay):
+def plotOneMinute(ticker, trade_day):
     # define the ticker symbol
     date_format = mdates.DateFormatter("%H:%M")
 
     # get data using download method
-    startTime = pendulum.parse(tradeDay + " 00:00")
-    endTime = pendulum.parse(tradeDay + " 23:59")
-    df = yf.download(ticker, start=startTime, end=endTime, interval="1m", progress=False)
+    start_time = pendulum.parse(trade_day + " 00:00")
+    end_time = pendulum.parse(trade_day + " 23:59")
+    df = yf.download(ticker, start=start_time, end=end_time, interval="1m", progress=False)
 
     # convert the index to Eastern Time and remove the timezone
     df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
-    df = calculateDF(df)
+    df = calculate_df(df)
     df = find_signals(df)
 
     # Plot stock price, MACD, KDJ, RSI using matplotlib
@@ -350,20 +330,20 @@ def plotOneMinute(ticker, tradeDay):
     ax4 = plt.subplot2grid((9, 1), (7, 0), rowspan=1)
     ax5 = plt.subplot2grid((9, 1), (8, 0), rowspan=3)
 
-    plotCandlestick(df, ax1, ticker)
-    plotMACD(df, ax2, date_format)
-    plotRSI(df, ax3)
-    plotKDJ(df, ax4)
-    plotVolume(df, ax5)
+    plot_candlestick(df, ax1, ticker)
+    plot_MACD(df, ax2, date_format)
+    plot_RSI(df, ax3)
+    plot_KDJ(df, ax4)
+    plot_Volume(df, ax5)
 
-    plotVerticalLines(df, ax2)
-    plotVerticalLines(df, ax3)
-    plotVerticalLines(df, ax4)
-    plotVerticalLines(df, ax5)
-    markBuyAndSell(df, ax4)
+    plot_vertical_lines(df, ax2)
+    plot_vertical_lines(df, ax3)
+    plot_vertical_lines(df, ax4)
+    plot_vertical_lines(df, ax5)
+    mark_buy_and_sell(df, ax4)
 
     # save the figure
-    fig.savefig("1m %-5s %s.png" % (ticker, tradeDay), transparent=True, bbox_inches="tight")
+    fig.savefig("1m %-5s %s.png" % (ticker, trade_day), transparent=True, bbox_inches="tight")
     return df
 
 
@@ -380,8 +360,8 @@ principal = 10000.00
 
 # 1. For single stock
 try:
-    plotOneDay("NVDA", "2020-01-01", date_string_today)
-    plotOneMinute("NVDA", "2023-06-28")
+    print_day_trade(plotOneDay("NVDA", "2020-01-01", date_string_today), principal)
+    print_day_trade(plotOneMinute("NVDA", "2023-06-28"), principal)
 except ArithmeticError as e:
     print(e)
 
