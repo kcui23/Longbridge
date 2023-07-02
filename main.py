@@ -5,8 +5,9 @@ import pandas as pd
 import pandas_market_calendars as mcal
 import yfinance as yf
 import ta
-from datetime import datetime
 import pendulum
+from datetime import datetime
+from scipy.interpolate import make_interp_spline, BSpline
 
 
 def generateUSTradeDays(start_date, end_date):
@@ -208,14 +209,14 @@ def plotMACD(df, ax, date_format):
     ax.spines["left"].set_visible(False)
     ax.xaxis.set_major_formatter(date_format)
     ax.tick_params(axis="x", top=False)
-    ax.plot(df["Datetime"], df["DIF"], color="#0055cc", linewidth=1, label="DIF")
-    ax.plot(df["Datetime"], df["DEM"], color="#ffa500", linewidth=1, label="DEM")
-    ax.fill_between(df["Datetime"], df["Histogram"], 0, where=(df["Histogram"] > 0), color="#006d21", alpha=1)
-    ax.fill_between(df["Datetime"], df["Histogram"], 0, where=(df["Histogram"] <= 0), color="#ff2f92", alpha=1)
+    ax.plot(df["Datetime"], df["DIF"], color="#0055cc", label="DIF", linewidth=1)
+    ax.plot(df["Datetime"], df["DEM"], color="#ffa500", label="DEM", linewidth=1)
+    ax.bar(df["Datetime"], df["Histogram"], width=[0.0005 if len(df) <= 390 else 1000 / len(df)],
+           color=["#006d21" if x >= 0 else "#ff2f92" for x in df["Histogram"]])
 
 
 def plotRSI(df, ax):
-    # plot the RSI on ax3
+    # plot the RSI on ax
     ax.set_ylabel("RSI")
     ax.set_xlim(min(df["Datetime"]), max(df["Datetime"]))
     ax.margins(x=0)
@@ -261,8 +262,15 @@ def plotVolume(df, ax):
     ax.spines["right"].set_visible(False)
     ax.spines["bottom"].set_visible(False)
     ax.spines["left"].set_visible(False)
+    ax.set_ylim(top=max(df["Volume"]))
     ax.set_xticklabels([])
     ax.set_xticks([])
+
+    # Add a smooth fitting line based on df["Volume"]
+    xNew = pd.date_range(df["Datetime"].min(), df["Datetime"].max(), periods=300)
+    spl = make_interp_spline(df["Datetime"], df["Volume"], k=3)
+    volume_smooth = spl(xNew)
+    plt.plot(xNew, volume_smooth * 4, color="#ffa500", linewidth=1)
 
 
 def calculateDF(df):
@@ -370,21 +378,21 @@ date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000.00
 
-# # 1. For single stock
-# try:
-#     plotOneDay("NVDA", "2022-01-01", date_string_today)
-#     plotOneMinute("NVDA", "2023-06-30")
-# except ArithmeticError as e:
-#     print(e)
+# 1. For single stock
+try:
+    plotOneDay("NVDA", "2020-01-01", date_string_today)
+    plotOneMinute("NVDA", "2023-06-28")
+except ArithmeticError as e:
+    print(e)
 
-# 2. For all stocks in the list
-now = datetime.now()
-print("%s" % (now.strftime("%d/%m/%y %H:%M:%S")))
-
-for x in tickers:
-    print("%s" % x)
-    print_day_trade(plotOneMinute(x, "2023-06-30"), principal)
-    print_day_trade(plotOneDay(x, "2020-01-01", date_string_today), principal)
+# # 2. For all stocks in the list
+# now = datetime.now()
+# print("%s" % (now.strftime("%d/%m/%y %H:%M:%S")))
+#
+# for x in tickers:
+#     print("%s" % x)
+#     # print_day_trade(plotOneMinute(x, "2023-06-28"), principal)
+#     print_day_trade(plotOneDay(x, "2020-01-01", date_string_today), principal)
 
 # # 3. Day trade in recent 30 days
 # total = 0.00
