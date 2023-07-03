@@ -11,6 +11,7 @@ from scipy.interpolate import make_interp_spline
 
 
 def print_realtime_ratting(df):
+    print(datetime.now())
     for i in range(len(df)):
         current = df["BuyIndex"][i]
         if current == "Buy" or current == "PotentialBuy":
@@ -72,13 +73,13 @@ def find_signals(df):
             DIF_last = df["DIF"][i - 1]
             DEM_last = df["DEM"][i - 1]
 
-            if (DIF > DEM and DIF_last < DEM_last) and (DIF < 0 and DEM < 0) and (RSI <= 100):
+            if (DIF > DEM and DIF_last < DEM_last) and (DIF < 0 and DEM < 0) and (RSI <= 70) and (J >= K and J >= D):
                 if buy_tick:
                     df.iloc[i, df.columns.get_loc("BuyIndex")] = "Buy"
                     buy_tick = False
                 elif not buy_tick:
                     df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
-            elif (DIF < DEM and DIF_last > DEM_last) and (DIF > 0 and DEM > 0) and (RSI >= 50):
+            elif (DIF < DEM and DIF_last > DEM_last) and (DIF > 0 and DEM > 0) and (RSI >= 50) and (J <= K and J <= D):
                 if not buy_tick:
                     df.iloc[i, df.columns.get_loc("BuyIndex")] = "Sell"
                     buy_tick = True
@@ -91,7 +92,6 @@ def find_signals(df):
             flag_can_start = True
             continue
 
-    # Return the data frame with signals
     return df
 
 
@@ -119,6 +119,7 @@ def print_day_trade(df, principle):
             position = df["Position"][i - 1]
             commission = calculate_commission(price, position, direction)
             balance = balance + price * position - commission
+            position = 0
 
             df.iloc[i, df.columns.get_loc("Balance")] = balance
             df.iloc[i, df.columns.get_loc("Position")] = 0
@@ -312,7 +313,7 @@ def plotOneDay(ticker, start_time, end_time):
     mark_buy_and_sell(df, ax4)
 
     # save the figure
-    fig.savefig("1d %-5s %s %s.png" % (ticker, start_time, end_time), transparent=True, bbox_inches="tight")
+    fig.savefig("1d %-5s %s %s.png" % (ticker, start_time, end_time), transparent=False, bbox_inches="tight")
     return df
 
 
@@ -329,7 +330,6 @@ def plotOneMinute(ticker, trade_day):
     df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
     df = calculate_df(df)
     df = find_signals(df)
-    print_realtime_ratting(df)
 
     # Plot stock price, MACD, KDJ, RSI using matplotlib
     plt.rcParams["font.family"] = "Menlo"
@@ -354,13 +354,12 @@ def plotOneMinute(ticker, trade_day):
     mark_buy_and_sell(df, ax4)
 
     # save the figure
-    fig.savefig("1m %-5s %s.png" % (ticker, trade_day), transparent=True, bbox_inches="tight")
+    fig.savefig("1m %-5s %s.png" % (ticker, trade_day), transparent=False, bbox_inches="tight")
     return df
 
 
 tickers = ["NVDA", "MSFT", "META", "TSM", "GOOGL", "AMZN", "QCOM", "AMD", "ORCL", "VZ", "NFLX", "JPM", "GS",
-           "MS",
-           "WFC", "BAC",
+           "MS", "WFC", "BAC",
            "V", "MA", "AXP", "CVX", "XOM", "MCD", "PEP", "KO", "PG", "ABBV", "MRK", "LLY", "UNH", "PFE", "JNJ", "SPY",
            "SPLG"]
 
@@ -370,8 +369,8 @@ date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000.00
 
 # 1. For single stock
-plotOneDay("NVDA", "2020-01-01", date_string_today)
-plotOneMinute("NVDA", "2023-06-28")
+print_realtime_ratting(plotOneDay("NVDA", "2020-01-01", date_string_today))
+print_realtime_ratting(plotOneMinute("NVDA", "2023-06-28"))
 
 # # 2. For all stocks in the list
 # for x in tickers:
