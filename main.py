@@ -12,7 +12,6 @@ import sys
 
 
 def print_realtime_ratting(df):
-    print(datetime.now())
     for i in range(len(df)):
         current = df["BuyIndex"][i]
         if current == "Buy" or current == "PotentialBuy":
@@ -141,7 +140,7 @@ def print_trade_records(df):
             print("%s\t%-4s\t%5.2f\t%4d\t%4.2f\t%10s\t%10s" % (
                 df["Datetime"][i],
                 df["BuyIndex"][i],
-                df["Low"][i],
+                df["Low"][i] if df["BuyIndex"][i] == "Buy" else df["High"][i],
                 df["Position"][i] if df["Position"][i] > 0 else df["Position"][i - 1],
                 df["Commission"][i],
                 f"{df['Balance'][i]:,.2f}",
@@ -257,9 +256,10 @@ def plot_Volume(df, ax):
     ax.margins(x=0)
     ax.yaxis.set_label_position("right")
     ax.yaxis.set_ticks_position("right")
-    ax.bar(df["Datetime"], df["Volume"], width=0.0005, color="#006d21")
     [ax.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
-    ax.set_ylim(top=max(df["Volume"]))
+    ax.tick_params(axis="x", top=False)
+    ax.bar(df["Datetime"], df["Volume"], width=0.0005, color="#006d21")
+    ax.set_ylim(0, max(df["Volume"]))
     ax.set_xticklabels([])
     ax.set_xticks([])
 
@@ -267,7 +267,7 @@ def plot_Volume(df, ax):
     x_new = pd.date_range(df["Datetime"].min(), df["Datetime"].max(), periods=300)
     spl = make_interp_spline(df["Datetime"], df["Volume"], k=3)
     volume_smooth = spl(x_new)
-    plt.plot(x_new, volume_smooth * 4, color="#ffa500", linewidth=1)
+    plt.plot(x_new, volume_smooth * 1, color="#ffa500", linewidth=1)
 
 
 def calculate_df(df):
@@ -290,55 +290,9 @@ def calculate_df(df):
     return df
 
 
-def plotOneDay(ticker, start_time, end_time):
-    date_format = mdates.DateFormatter("%d/%m/%y")
-
-    # get data using download method
-    df = yf.download(ticker, start=start_time, end=end_time, interval="1d", progress=False)
-    df = calculate_df(df)
-    df = find_signals(df)
-    df = print_trade(df)
-
+def plot_stock_screener(df, ticker, type):
     # Plot stock price, MACD, KDJ, RSI using matplotlib
-    plt.rcParams["font.family"] = "Menlo"
-    fig = plt.figure(figsize=(16, 9), dpi=300)
-
-    ax1 = plt.subplot2grid((8, 1), (0, 0), rowspan=4)
-    ax2 = plt.subplot2grid((8, 1), (4, 0), rowspan=2)
-    ax3 = plt.subplot2grid((8, 1), (6, 0), rowspan=1)
-    ax4 = plt.subplot2grid((8, 1), (7, 0), rowspan=1)
-
-    plot_candlestick(df, ax1, ticker)
-    plot_MACD(df, ax2, date_format)
-    plot_RSI(df, ax3)
-    plot_KDJ(df, ax4)
-
-    plot_vertical_lines(df, ax2)
-    plot_vertical_lines(df, ax3)
-    plot_vertical_lines(df, ax4)
-    mark_buy_and_sell(df, ax4)
-
-    # save the figure
-    fig.savefig("1d %-5s %s %s.png" % (ticker, start_time, end_time), transparent=True, bbox_inches="tight")
-    return df
-
-
-def plotOneMinute(ticker, trade_day):
-    # define the ticker symbol
-    date_format = mdates.DateFormatter("%H:%M")
-
-    # get data using download method
-    start_time = pendulum.parse(trade_day + " 04:00")
-    end_time = pendulum.parse(trade_day + " 23:59")
-    df = yf.download(ticker, start=start_time, end=end_time, interval="1m", progress=False)
-
-    # convert the index to Eastern Time and remove the timezone
-    df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
-    df = calculate_df(df)
-    df = find_signals(df)
-    df = print_trade(df)
-
-    # Plot stock price, MACD, KDJ, RSI using matplotlib
+    file_name = ""
     plt.rcParams["font.family"] = "Menlo"
     fig = plt.figure(figsize=(16, 9), dpi=300)
 
@@ -349,7 +303,6 @@ def plotOneMinute(ticker, trade_day):
     ax5 = plt.subplot2grid((9, 1), (8, 0), rowspan=3)
 
     plot_candlestick(df, ax1, ticker)
-    plot_MACD(df, ax2, date_format)
     plot_RSI(df, ax3)
     plot_KDJ(df, ax4)
     plot_Volume(df, ax5)
@@ -357,37 +310,82 @@ def plotOneMinute(ticker, trade_day):
     plot_vertical_lines(df, ax2)
     plot_vertical_lines(df, ax3)
     plot_vertical_lines(df, ax4)
-    plot_vertical_lines(df, ax5)
+
     mark_buy_and_sell(df, ax4)
 
+    if type == "1d":
+        file_name = "1d %-5s %s %s.png" % (
+            ticker, str(df["Datetime"][0])[:10],
+            str(df["Datetime"][len(df) - 1])[:10])
+        date_format = mdates.DateFormatter("%d/%m/%y")
+        plot_MACD(df, ax2, date_format)
+
+    elif type == "1m":
+        file_name = "1m %-5s %s.png" % (
+            ticker, str(df["Datetime"][len(df) - 1])[:10])
+        date_format = mdates.DateFormatter("%H:%M")
+        plot_MACD(df, ax2, date_format)
+        plot_vertical_lines(df, ax5)
+
     # save the figure
-    fig.savefig("1m %-5s %s.png" % (ticker, trade_day), transparent=True, bbox_inches="tight")
+    fig.savefig(file_name, transparent=True, bbox_inches="tight")
+
+
+def plotOneDay(ticker, start_time, end_time):
+    # get data using download method
+    df = yf.download(ticker, start=start_time, end=end_time, interval="1d", progress=False)
+    df = calculate_df(df)
+    df = find_signals(df)
+    df = print_trade(df)
+    plot_stock_screener(df, ticker, "1d")
+
     return df
 
 
-tickers = ["NVDA", "MSFT", "META", "TSM", "GOOGL", "AMZN", "QCOM", "AMD", "ORCL", "VZ", "NFLX", "JPM",
-           "GS", "MS", "WFC", "BAC",
-           "V", "MA", "AXP", "CVX", "XOM", "MCD", "PEP", "KO", "PG", "ABBV", "MRK", "LLY", "UNH", "PFE", "JNJ", "SPY",
-           "SPLG"]
+def plotOneMinute(ticker, trade_day):
+    # get data using download method
+    start_time = pendulum.parse(trade_day + " 00:00")
+    end_time = pendulum.parse(trade_day + " 23:59")
+    df = yf.download(ticker, start=start_time, end=end_time, interval="1m", progress=False)
+
+    # convert the index to Eastern Time and remove the timezone
+    df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
+
+    df = calculate_df(df)
+    df = find_signals(df)
+    df = print_trade(df)
+    plot_stock_screener(df, ticker, "1m")
+
+    return df
+
+
+tickers = [
+    "MSFT", "NVDA", "TSM", "GOOGL", "META", "ORCL", "AMZN", "QCOM", "AMD", "VZ", "NFLX", "ASML",
+    "JPM", "GS", "MS", "WFC", "BAC", "V", "MA", "AXP",
+    "CVX", "XOM",
+    "SPY", "SPLG"
+]
 
 today = datetime.today()
 date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
-principal = 10000.00
 
 # # 1. For single stock
-# print_trade_records(plotOneMinute("V", "2023-06-30"))
-# print_trade_records(plotOneDay("V", "2020-01-01", date_string_today))
+# print_trade_records(plotOneMinute("0700.hk", "2023-07-03"))
+# print_trade_records(plotOneDay("0700.hk", "2020-01-01", date_string_today))
 
 # 2. For all stocks in the list
 for x in tickers:
     now = datetime.now()
     print("\n%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
+
     df = plotOneMinute(x, "2023-06-30")
     print_realtime_ratting(df)
+    print_trade_records(df)
 
-    # df = plotOneDay(x, "2020-01-01", date_string_today)
-    # print_realtime_ratting(df)
+    df = plotOneDay(x, "2020-01-01", date_string_today)
+    print_realtime_ratting(df)
+    print_trade_records(df)
 
 # # 3. Day trade in recent 30 days
 # trade_days = generate_US_trade_days("2023-06-01", "2023-06-29")
