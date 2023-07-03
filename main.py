@@ -16,9 +16,9 @@ def print_realtime_ratting(df):
     for i in range(len(df)):
         current = df["BuyIndex"][i]
         if current == "Buy" or current == "PotentialBuy":
-            print("%s\tBuy   \t%.2f\tRSI: %5.2f" % (df["Datetime"][i], df["Low"][i], df["RSI"][i]))
+            print("%s\t\033[31mBuy   \t%.2f\033[0m\tRSI: %5.2f" % (df["Datetime"][i], df["Low"][i], df["RSI"][i]))
         elif current == "Sell" or current == "PotentialSell":
-            print("%s\tSell  \t%.2f\tRSI: %5.2f" % (df["Datetime"][i], df["High"][i], df["RSI"][i]))
+            print("%s\t\033[34mSell  \t%.2f\033[0m\tRSI: %5.2f" % (df["Datetime"][i], df["High"][i], df["RSI"][i]))
 
 
 def generate_US_trade_days(start_date, end_date):
@@ -383,8 +383,11 @@ principal = 10000.00
 for x in tickers:
     now = datetime.now()
     print("\n%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
-    print_trade_records(plotOneMinute(x, "2023-06-28"))
-    print_trade_records(plotOneDay(x, "2020-01-01", date_string_today))
+    df = plotOneMinute(x, "2023-06-30")
+    print_realtime_ratting(df)
+
+    # df = plotOneDay(x, "2020-01-01", date_string_today)
+    # print_realtime_ratting(df)
 
 # # 3. Day trade in recent 30 days
 # trade_days = generate_US_trade_days("2023-06-01", "2023-06-29")
