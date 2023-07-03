@@ -8,6 +8,7 @@ import ta
 import pendulum
 from datetime import datetime
 from scipy.interpolate import make_interp_spline
+import sys
 
 
 def print_realtime_ratting(df):
@@ -74,9 +75,9 @@ def find_signals(df):
             DIF_last = df["DIF"][i - 1]
             DEM_last = df["DEM"][i - 1]
 
-            if (DIF > DEM and DIF_last < DEM_last) and (DIF < 0 and DEM < 0) and (RSI <= 70) and (J >= K and J >= D):
+            if (DIF > DEM and DIF_last < DEM_last) and (DIF < 0 and DEM < 0) and (RSI <= 60) and (J >= K and J >= D):
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
-            elif (DIF < DEM and DIF_last > DEM_last) and (DIF > 0 and DEM > 0) and (RSI >= 50) and (J <= K and J <= D):
+            elif (DIF < DEM and DIF_last > DEM_last) and (DIF > 0 and DEM > 0) and (RSI >= 30) and (J <= K and J <= D):
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialSell"
             else:
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "Hold"
@@ -88,49 +89,62 @@ def find_signals(df):
     return df
 
 
-def print_day_trade(df, principle):
+def print_trade(df, principle, printRecords):
     df["Balance"] = principle
     df["Position"] = 0
     df["Commission"] = 0.00
 
     for i in range(len(df)):
+
+        df.iloc[i, df.columns.get_loc("Balance")] = df["Balance"][i - 1]
+        df.iloc[i, df.columns.get_loc("Position")] = df["Position"][i - 1]
+        position = df["Position"][i]
+        balance = df["Balance"][i]
         direction = df["BuyIndex"][i]
-        balance = df["Balance"][i - 1]
-        position = 0
 
-        if direction == "Buy":
-            price = df["Low"][i]
-            position = calculate_buy_position(price, balance, direction)
-            commission = calculate_commission(price, position, direction)
-            balance = balance - price * position - commission
+        if direction == "PotentialBuy" and position == 0:
+            current_price = df["Low"][i]
+            direction = "Buy"
+            position = calculate_buy_position(current_price, balance, direction)
+            commission = calculate_commission(current_price, position, direction)
+            balance = balance - current_price * position - commission
 
-            df.iloc[i, df.columns.get_loc("Balance")] = balance
             df.iloc[i, df.columns.get_loc("Position")] = position
             df.iloc[i, df.columns.get_loc("Commission")] = commission
-        elif direction == "Sell":
-            price = df["High"][i]
-            position = df["Position"][i - 1]
-            commission = calculate_commission(price, position, direction)
-            balance = balance + price * position - commission
-            position = 0
-
             df.iloc[i, df.columns.get_loc("Balance")] = balance
-            df.iloc[i, df.columns.get_loc("Position")] = 0
-            df.iloc[i, df.columns.get_loc("Commission")] = commission
-        else:
-            df.iloc[i, df.columns.get_loc("Balance")] = df["Balance"][i - 1]
-            df.iloc[i, df.columns.get_loc("Position")] = df["Position"][i - 1]
+            df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
+        elif direction == "PotentialSell" and position > 0:
 
-        if direction == "Buy" or direction == "Sell":
-            print("%s\t%-4s\t%5.2f\t@%4d\tCommission: %4.2f\tBalance: %10s\tTotal: %10s" % (
-                df["Datetime"][i], direction, df["Low"][i], position, df["Commission"][i], f"{balance:,.2f}",
-                f"{balance + df['Close'][i] * df['Position'][i]:,.2f}"))
+            last_buy_price = sys.float_info.max
+            for j in range(i - 1, -1, -1):
+                if df["BuyIndex"][j] == "Buy":
+                    last_buy_price = df["Low"][j]
+                    break
 
-    final_index = len(df) - 1
-    final_asset = df["Balance"][final_index]
-    if df["Position"][final_index] > 0:
-        final_asset += df["Close"][final_index] * df["Position"][final_index]
-    print(f"{final_asset:,.2f}")
+            current_price = df["High"][i]
+            if current_price > last_buy_price:
+                direction = "Sell"
+                commission = calculate_commission(current_price, position, direction)
+                df.iloc[i, df.columns.get_loc("Position")] = 0
+                df.iloc[i, df.columns.get_loc("Balance")] = balance + current_price * position - commission
+                df.iloc[i, df.columns.get_loc("Commission")] = commission
+                df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
+
+    # Print transaction records
+    if printRecords:
+        print("\nDatetime\t\t\tDIR\t\tPrice\tPSN\t\tCMS\t\tBalance\t\tTotal")
+        for i in range(len(df)):
+            direction = df["BuyIndex"][i]
+
+            if direction == "Buy" or direction == "Sell":
+                print("%s\t%-4s\t%5.2f\t%4d\t%4.2f\t%10s\t%10s" % (
+                    df["Datetime"][i],
+                    df["BuyIndex"][i],
+                    df["Low"][i],
+                    df["Position"][i] if df["Position"][i] > 0 else df["Position"][i - 1],
+                    df["Commission"][i],
+                    f"{df['Balance'][i]:,.2f}",
+                    f"{df['Balance'][i] + df['Close'][i] * df['Position'][i]:,.2f}"))
 
     return df
 
@@ -278,13 +292,13 @@ def calculate_df(df):
 
 
 def plotOneDay(ticker, start_time, end_time):
-    # define the ticker symbol
     date_format = mdates.DateFormatter("%d/%m/%y")
 
     # get data using download method
     df = yf.download(ticker, start=start_time, end=end_time, interval="1d", progress=False)
     df = calculate_df(df)
     df = find_signals(df)
+    df = print_trade(df, 10000, True) # Principal and if to print
 
     # Plot stock price, MACD, KDJ, RSI using matplotlib
     plt.rcParams["font.family"] = "Menlo"
@@ -315,7 +329,7 @@ def plotOneMinute(ticker, trade_day):
     date_format = mdates.DateFormatter("%H:%M")
 
     # get data using download method
-    start_time = pendulum.parse(trade_day + " 00:00")
+    start_time = pendulum.parse(trade_day + " 04:00")
     end_time = pendulum.parse(trade_day + " 23:59")
     df = yf.download(ticker, start=start_time, end=end_time, interval="1m", progress=False)
 
@@ -323,6 +337,7 @@ def plotOneMinute(ticker, trade_day):
     df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
     df = calculate_df(df)
     df = find_signals(df)
+    df = print_trade(df, 10000, True)
 
     # Plot stock price, MACD, KDJ, RSI using matplotlib
     plt.rcParams["font.family"] = "Menlo"
@@ -351,8 +366,8 @@ def plotOneMinute(ticker, trade_day):
     return df
 
 
-tickers = ["NVDA", "MSFT", "META", "TSM", "GOOGL", "AMZN", "QCOM", "AMD", "ORCL", "VZ", "NFLX", "JPM", "GS",
-           "MS", "WFC", "BAC",
+tickers = ["NVDA", "MSFT", "META", "TSM", "GOOGL", "AMZN", "QCOM", "AMD", "ORCL", "VZ", "NFLX", "JPM",
+           "GS", "MS", "WFC", "BAC",
            "V", "MA", "AXP", "CVX", "XOM", "MCD", "PEP", "KO", "PG", "ABBV", "MRK", "LLY", "UNH", "PFE", "JNJ", "SPY",
            "SPLG"]
 
@@ -362,8 +377,8 @@ date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000.00
 
 # 1. For single stock
-print_realtime_ratting(plotOneDay("NVDA", "2020-01-01", date_string_today))
-print_realtime_ratting(plotOneMinute("NVDA", "2023-06-28"))
+plotOneMinute("V", "2023-06-30")
+plotOneDay("V", "2020-01-01", date_string_today)
 
 # # 2. For all stocks in the list
 # for x in tickers:
