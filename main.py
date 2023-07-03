@@ -10,6 +10,15 @@ from datetime import datetime
 from scipy.interpolate import make_interp_spline
 
 
+def print_realtime_ratting(df):
+    for i in range(len(df)):
+        current = df["BuyIndex"][i]
+        if current == "Buy" or current == "PotentialBuy":
+            print("%s\tBuy   \t%.2f\tRSI: %5.2f" % (df["Datetime"][i], df["Low"][i], df["RSI"][i]))
+        elif current == "Sell" or current == "PotentialSell":
+            print("%s\tSell  \t%.2f\tRSI: %5.2f" % (df["Datetime"][i], df["High"][i], df["RSI"][i]))
+
+
 def generate_US_trade_days(start_date, end_date):
     # Get NYSE and Nasdaq calendars
     nyse = mcal.get_calendar('NYSE')
@@ -63,15 +72,13 @@ def find_signals(df):
             DIF_last = df["DIF"][i - 1]
             DEM_last = df["DEM"][i - 1]
 
-            if DIF > DEM and DIF_last < DEM_last and Histogram <= 0 and DIF < 0 and RSI <= 100 and (J > K and J > D):
-                print("%s\tBuy  \t%.2f\t" % (df["Datetime"][i], df["Open"][1]))
+            if (DIF > DEM and DIF_last < DEM_last) and (DIF < 0 and DEM < 0) and (RSI <= 100):
                 if buy_tick:
                     df.iloc[i, df.columns.get_loc("BuyIndex")] = "Buy"
                     buy_tick = False
                 elif not buy_tick:
                     df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
-            elif DIF < DEM and DIF_last > DEM_last and Histogram > 0 and DIF > 0 and RSI >= 0 and (J < K and J < D):
-                print("%s\tSell \t%.2f\t" % (df["Datetime"][i], df["Open"][i]))
+            elif (DIF < DEM and DIF_last > DEM_last) and (DIF > 0 and DEM > 0) and (RSI >= 50):
                 if not buy_tick:
                     df.iloc[i, df.columns.get_loc("BuyIndex")] = "Sell"
                     buy_tick = True
@@ -175,12 +182,11 @@ def mark_buy_and_sell(df, ax):
 
 
 def plot_candlestick(df, ax, ticker):
+    # plot the candlestick chart on ax
     mc = mpf.make_marketcolors(up='#006d21', down='#ff2f92', edge='inherit', wick='inherit',
                                volume='inherit')
     s = mpf.make_mpf_style(base_mpf_style='starsandstripes', rc={'font.size': 6},
                            marketcolors=mc)
-
-    # plot the candlestick chart on ax
     mpf.plot(df, type="candle", ax=ax, style=s, warn_too_much_data=10000000)
     ax.set_ylabel("%s @ %s" % (ticker, str(df["Datetime"][len(df) - 1])[:10]))
     ax.yaxis.set_label_position("right")
@@ -323,6 +329,7 @@ def plotOneMinute(ticker, trade_day):
     df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
     df = calculate_df(df)
     df = find_signals(df)
+    print_realtime_ratting(df)
 
     # Plot stock price, MACD, KDJ, RSI using matplotlib
     plt.rcParams["font.family"] = "Menlo"
@@ -363,24 +370,18 @@ date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000.00
 
 # 1. For single stock
-# print_day_trade(plotOneDay("0700.hk", "2020-01-01", date_string_today), principal)
-print_day_trade(plotOneMinute("0005.hk", "2023-07-03"), principal)
+plotOneDay("NVDA", "2020-01-01", date_string_today)
+plotOneMinute("NVDA", "2023-06-28")
 
-# 2. For all stocks in the list
-now = datetime.now()
-print("%s" % (now.strftime("%d/%m/%y %H:%M:%S")))
-
-for x in tickers:
-    print("%s" % x)
-    print_day_trade(plotOneMinute(x, "2023-06-30"), principal)
-    # print_day_trade(plotOneDay(x, "2020-01-01", date_string_today), principal)
+# # 2. For all stocks in the list
+# for x in tickers:
+#     now = datetime.now()
+#     print("%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
+#     plotOneMinute(x, "2023-06-30")
+#     plotOneDay(x, "2020-01-01", date_string_today)
 
 # # 3. Day trade in recent 30 days
-# total = 0.00
-# trade_days = generateUSTradeDays("2023-06-01", "2023-06-29")
+# trade_days = generate_US_trade_days("2023-06-01", "2023-06-29")
 #
 # for i in trade_days:
 #     trade_day = str(i)[:10]
-#     total += print_day_trade(plotOneMinute("ORCL", trade_day), principal) - principal
-#
-# print("Total: %10s" % f"{total:,.2f}")
