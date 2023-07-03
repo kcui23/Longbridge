@@ -36,6 +36,7 @@ def generate_US_trade_days(start_date, end_date):
 
 
 def calculate_commission(price, position, direction):
+    # Long Bridge commission free
     res = max(1, 0.005 * position) + 0.003 * position
 
     if direction == "Sell":
@@ -54,10 +55,10 @@ def calculate_buy_position(price, balance, direction):
 
 
 def find_signals(df):
-    # Initialize an empty column for signals
+
+    # Mark all potential buy / sell timings
     df["BuyIndex"] = ""
     flag_can_start = False  # Can visit df["DIF"][i - 1]
-    buy_tick = True  # True: to buy, False: to hold or sell
 
     for i in range(len(df)):
 
@@ -74,21 +75,13 @@ def find_signals(df):
             DEM_last = df["DEM"][i - 1]
 
             if (DIF > DEM and DIF_last < DEM_last) and (DIF < 0 and DEM < 0) and (RSI <= 70) and (J >= K and J >= D):
-                if buy_tick:
-                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "Buy"
-                    buy_tick = False
-                elif not buy_tick:
-                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
+                df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
             elif (DIF < DEM and DIF_last > DEM_last) and (DIF > 0 and DEM > 0) and (RSI >= 50) and (J <= K and J <= D):
-                if not buy_tick:
-                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "Sell"
-                    buy_tick = True
-                elif buy_tick:
-                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialSell"
+                df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialSell"
             else:
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "Hold"
 
-        if pd.notna(DIF) and pd.notna(DEM):
+        if not flag_can_start and pd.notna(DIF) and pd.notna(DEM):
             flag_can_start = True
             continue
 
