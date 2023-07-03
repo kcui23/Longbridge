@@ -120,51 +120,56 @@ def print_day_trade(df, principle):
             df.iloc[i, df.columns.get_loc("Balance")] = df["Balance"][i - 1]
             df.iloc[i, df.columns.get_loc("Position")] = df["Position"][i - 1]
 
-
         if direction == "Buy" or direction == "Sell":
             print("%s\t%-4s\t%5.2f\t@%4d\tCommission: %4.2f\tBalance: %10s\tTotal: %10s" % (
                 df["Datetime"][i], direction, df["Low"][i], position, df["Commission"][i], f"{balance:,.2f}",
                 f"{balance + df['Close'][i] * df['Position'][i]:,.2f}"))
+
+    final_index = len(df) - 1
+    final_asset = df["Balance"][final_index]
+    if df["Position"][final_index] > 0:
+        final_asset += df["Close"][final_index] * df["Position"][final_index]
+    print(f"{final_asset:,.2f}")
 
     return df
 
 
 def plot_vertical_lines(df, ax):
     for i in range(len(df)):
-        x = df["Datetime"][i]
+        x_trade = df["Datetime"][i]
         current = df["BuyIndex"][i]
         if current == "Buy" or current == "PotentialBuy":
-            ax.axvline(x=x, ymin=0, ymax=3.2, c="#ff2f92", linewidth=0.5, alpha=1, zorder=0, clip_on=False)
+            ax.axvline(x=x_trade, ymin=0, ymax=3.2, c="#ff2f92", linewidth=0.5, alpha=1, zorder=0, clip_on=False)
         elif current == "Sell" or current == "PotentialSell":
-            ax.axvline(x=x, ymin=0, ymax=3.2, c="#0055cc", linewidth=0.5, alpha=1, zorder=0, clip_on=False)
+            ax.axvline(x=x_trade, ymin=0, ymax=3.2, c="#0055cc", linewidth=0.5, alpha=1, zorder=0, clip_on=False)
 
 
 def mark_buy_and_sell(df, ax):
     for i in range(len(df)):
-        x = df["Datetime"][i]
-        y = -200
+        x_trade = df["Datetime"][i]
+        y_trade = -200
         if df["BuyIndex"][i] == "Buy":
             text = "B\n" + f"{df['Low'][i]:,.2f}"
-            ax.annotate(text, xy=(x, y), xytext=(
-                x, y), color="#ffffff", fontsize=8,
+            ax.annotate(text, xy=(x_trade, y_trade), xytext=(
+                x_trade, y_trade), color="#ffffff", fontsize=8,
                         bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.15", facecolor="#ff2f92",
                                   edgecolor="none", alpha=1))
         elif df["BuyIndex"][i] == "PotentialBuy":
             text = f"{df['Low'][i]:,.2f}"
-            ax.annotate(text, xy=(x, y), xytext=(
-                x, y), color="#ffffff", fontsize=7,
+            ax.annotate(text, xy=(x_trade, y_trade), xytext=(
+                x_trade, y_trade), color="#ffffff", fontsize=7,
                         bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.15", facecolor="#ff2f92",
                                   edgecolor="none", alpha=1))
         elif df["BuyIndex"][i] == "Sell":
             text = "S\n" + f"{df['High'][i]:,.2f}"
-            ax.annotate(text, xy=(x, y), xytext=(
-                x, y + 80), color="#ffffff", fontsize=8,
+            ax.annotate(text, xy=(x_trade, y_trade), xytext=(
+                x_trade, y_trade + 80), color="#ffffff", fontsize=8,
                         bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.15", facecolor="#0055cc",
                                   edgecolor="none", alpha=1))
         elif df["BuyIndex"][i] == "PotentialSell":
             text = f"{df['High'][i]:,.2f}"
-            ax.annotate(text, xy=(x, y), xytext=(
-                x, y), color="#ffffff", fontsize=7,
+            ax.annotate(text, xy=(x_trade, y_trade), xytext=(
+                x_trade, y_trade), color="#ffffff", fontsize=7,
                         bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.15", facecolor="#0055cc",
                                   edgecolor="none", alpha=1))
 
@@ -177,8 +182,7 @@ def plot_candlestick(df, ax, ticker):
 
     # plot the candlestick chart on ax
     mpf.plot(df, type="candle", ax=ax, style=s, warn_too_much_data=10000000)
-    now = datetime.now()
-    ax.set_ylabel("%s @ %s" % (ticker, now.strftime("%d/%m/%y %H:%M:%S")))
+    ax.set_ylabel("%s @ %s" % (ticker, str(df["Datetime"][len(df) - 1])[:10]))
     ax.yaxis.set_label_position("right")
     [ax.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
     ax.set_xticklabels([])
@@ -201,7 +205,7 @@ def plot_MACD(df, ax, date_format):
     ax.plot(df["Datetime"], df["DIF"], color="#0055cc", label="DIF", linewidth=1)
     ax.plot(df["Datetime"], df["DEM"], color="#ffa500", label="DEM", linewidth=1)
     ax.bar(df["Datetime"], df["Histogram"], width=[0.0005 if len(df) <= 390 else 2000 / len(df)],
-           color=["#006d21" if x >= 0 else "#ff2f92" for x in df["Histogram"]])
+           color=["#006d21" if h >= 0 else "#ff2f92" for h in df["Histogram"]])
 
 
 def plot_RSI(df, ax):
@@ -359,20 +363,17 @@ date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000.00
 
 # 1. For single stock
-try:
-    print_day_trade(plotOneDay("NVDA", "2020-01-01", date_string_today), principal)
-    print_day_trade(plotOneMinute("NVDA", "2023-06-28"), principal)
-except ArithmeticError as e:
-    print(e)
+# print_day_trade(plotOneDay("0700.hk", "2020-01-01", date_string_today), principal)
+print_day_trade(plotOneMinute("0005.hk", "2023-07-03"), principal)
 
-# # 2. For all stocks in the list
-# now = datetime.now()
-# print("%s" % (now.strftime("%d/%m/%y %H:%M:%S")))
-#
-# for x in tickers:
-#     print("%s" % x)
-#     # print_day_trade(plotOneMinute(x, "2023-06-28"), principal)
-#     print_day_trade(plotOneDay(x, "2020-01-01", date_string_today), principal)
+# 2. For all stocks in the list
+now = datetime.now()
+print("%s" % (now.strftime("%d/%m/%y %H:%M:%S")))
+
+for x in tickers:
+    print("%s" % x)
+    print_day_trade(plotOneMinute(x, "2023-06-30"), principal)
+    # print_day_trade(plotOneDay(x, "2020-01-01", date_string_today), principal)
 
 # # 3. Day trade in recent 30 days
 # total = 0.00
