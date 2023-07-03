@@ -228,7 +228,7 @@ def plot_RSI(df, ax):
     ax.margins(x=0)
     ax.yaxis.set_label_position("right")
     ax.yaxis.set_ticks_position("right")
-    ax.plot(df["Datetime"], df["RSI"], label="RSI", color="#ff2f92", linewidth=1)
+    ax.plot(df["Datetime"], df["RSI"], label="RSI", color="#0055cc", linewidth=1)
     [ax.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
     ax.set_xticklabels([])
     ax.set_xticks([])
@@ -382,7 +382,7 @@ principal = 10000.00
 # 2. For all stocks in the list
 for x in tickers:
     now = datetime.now()
-    print("%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
+    print("\n%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
     print_trade_records(plotOneMinute(x, "2023-06-28"))
     print_trade_records(plotOneDay(x, "2020-01-01", date_string_today))
 
