@@ -3,18 +3,23 @@ import yfinance as yf
 import ta
 import pendulum
 from datetime import datetime
+import sys
 
 
 def print_realtime_ratting(df):
+    print("Datetime\t\t\tDIR\t\tPrice\tRSI\t\tCCI")
     for i in range(len(df)):
         current = df["BuyIndex"][i]
         if current == "Buy" or current == "PotentialBuy":
-            print("%s\tBuy   \t%.2f\tRSI: %5.2f" % (df["Datetime"][i], df["Low"][i], df["RSI"][i]))
+            print("%s\t\033[31mBuy   \t%.2f\033[0m\t%5.2f\t%5.2f" % (
+                df["Datetime"][i], df["Low"][i], df["RSI"][i], df["CCI"][i]))
         elif current == "Sell" or current == "PotentialSell":
-            print("%s\tSell  \t%.2f\tRSI: %5.2f" % (df["Datetime"][i], df["High"][i], df["RSI"][i]))
+            print("%s\t\033[34mSell  \t%.2f\033[0m\t%5.2f\t%5.2f" % (
+                df["Datetime"][i], df["High"][i], df["RSI"][i], df["CCI"][i]))
 
 
 def calculate_commission(price, position, direction):
+    # Long Bridge commission free
     res = max(1, 0.005 * position) + 0.003 * position
 
     if direction == "Sell":
@@ -33,10 +38,9 @@ def calculate_buy_position(price, balance, direction):
 
 
 def find_signals(df):
-    # Initialize an empty column for signals
+    # Mark all potential buy / sell timings
     df["BuyIndex"] = ""
     flag_can_start = False  # Can visit df["DIF"][i - 1]
-    buy_tick = True  # True: to buy, False: to hold or sell
 
     for i in range(len(df)):
 
@@ -52,73 +56,85 @@ def find_signals(df):
             DIF_last = df["DIF"][i - 1]
             DEM_last = df["DEM"][i - 1]
 
-            if (DIF > DEM and DIF_last < DEM_last) and (DIF < 0 and DEM < 0) and (RSI <= 100):
-                if buy_tick:
-                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "Buy"
-                    buy_tick = False
-                elif not buy_tick:
-                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
-            elif (DIF < DEM and DIF_last > DEM_last) and (DIF > 0 and DEM > 0) and (RSI >= 50):
-                if not buy_tick:
-                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "Sell"
-                    buy_tick = True
-                elif buy_tick:
-                    df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialSell"
+            if (DIF > DEM and DIF_last < DEM_last) and (DIF < 0 and DEM < 0) and (RSI <= 100) and (J >= K and J >= D):
+                df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
+            elif (DIF < DEM and DIF_last > DEM_last) and (DIF > 0 and DEM > 0) and (RSI >= 20) and (J <= K and J <= D):
+                df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialSell"
             else:
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "Hold"
 
-        if pd.notna(DIF) and pd.notna(DEM):
+        if not flag_can_start and pd.notna(DIF) and pd.notna(DEM):
             flag_can_start = True
             continue
 
-    # Return the data frame with signals
     return df
 
 
-def print_day_trade(df, principle):
-    df["Balance"] = principle
+def print_trade(df, principal):
+    df["Balance"] = principal
     df["Position"] = 0
     df["Commission"] = 0.00
+    df["TotalAssets"] = 0.00
 
     for i in range(len(df)):
+        df.iloc[i, df.columns.get_loc("Balance")] = df["Balance"][i - 1]
+        df.iloc[i, df.columns.get_loc("Position")] = df["Position"][i - 1]
+        position = df["Position"][i]
+        balance = df["Balance"][i]
         direction = df["BuyIndex"][i]
-        balance = df["Balance"][i - 1]
-        position = 0
 
-        if direction == "Buy":
-            price = df["Low"][i]
-            position = calculate_buy_position(price, balance, direction)
-            commission = calculate_commission(price, position, direction)
-            balance = balance - price * position - commission
+        if direction == "PotentialBuy" and position == 0:
+            current_price = df["Low"][i]
+            direction = "Buy"
+            position = calculate_buy_position(current_price, balance, direction)
+            commission = calculate_commission(current_price, position, direction)
+            balance = balance - current_price * position - commission
 
-            df.iloc[i, df.columns.get_loc("Balance")] = balance
             df.iloc[i, df.columns.get_loc("Position")] = position
             df.iloc[i, df.columns.get_loc("Commission")] = commission
-        elif direction == "Sell":
-            price = df["High"][i]
-            position = df["Position"][i - 1]
-            commission = calculate_commission(price, position, direction)
-            balance = balance + price * position - commission
-
             df.iloc[i, df.columns.get_loc("Balance")] = balance
-            df.iloc[i, df.columns.get_loc("Position")] = 0
-            df.iloc[i, df.columns.get_loc("Commission")] = commission
-        else:
-            df.iloc[i, df.columns.get_loc("Balance")] = df["Balance"][i - 1]
-            df.iloc[i, df.columns.get_loc("Position")] = df["Position"][i - 1]
+            df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
+        elif direction == "PotentialSell" and position > 0:
+            last_buy_price = sys.float_info.max
+            for j in range(i - 1, -1, -1):
+                if df["BuyIndex"][j] == "Buy":
+                    last_buy_price = df["Low"][j]
+                    break
 
-        if direction == "Buy" or direction == "Sell":
-            print("%s\t%-4s\t%5.2f\t@%4d\tCommission: %4.2f\tBalance: %10s\tTotal: %10s" % (
-                df["Datetime"][i], direction, df["Low"][i], position, df["Commission"][i], f"{balance:,.2f}",
-                f"{balance + df['Close'][i] * df['Position'][i]:,.2f}"))
+            current_price = df["High"][i]
+            if current_price >= last_buy_price * 1.01:
+                direction = "Sell"
+                commission = calculate_commission(current_price, position, direction)
+                df.iloc[i, df.columns.get_loc("Position")] = 0
+                df.iloc[i, df.columns.get_loc("Balance")] = balance + current_price * position - commission
+                df.iloc[i, df.columns.get_loc("Commission")] = commission
+                df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
 
-    final_index = len(df) - 1
-    final_asset = df["Balance"][final_index]
-    if df["Position"][final_index] > 0:
-        final_asset += df["Close"][final_index] * df["Position"][final_index]
-    print(f"{final_asset:,.2f}")
+        df.iloc[i, df.columns.get_loc("TotalAssets")] = \
+            df["Balance"][i] \
+                if df["Position"][i] == 0 else df["Balance"][i] + \
+                                               df["Close"][i] * \
+                                               df["Position"][i]
 
     return df
+
+
+def print_trade_records(df):
+    print("\nDatetime\t\t\tDIR\t\tPrice\tPSN\t\tCMS\t\tBalance\t\tTotal")
+    for i in range(len(df)):
+        direction = df["BuyIndex"][i]
+
+        if direction == "Buy" or direction == "Sell":
+            print("%s\t%-4s\t%5.2f\t%4d\t%4.2f\t%10s\t%10s" % (
+                df["Datetime"][i],
+                df["BuyIndex"][i],
+                df["Low"][i] if df["BuyIndex"][i] == "Buy" else df["High"][i],
+                df["Position"][i] if df["Position"][i] > 0 else df["Position"][i - 1],
+                df["Commission"][i],
+                f"{df['Balance'][i]:,.2f}",
+                f"{df['TotalAssets'][i]:,.2f}"))
+
+    return df["TotalAssets"][len(df) - 1]
 
 
 def calculate_df(df):
@@ -141,43 +157,48 @@ def calculate_df(df):
     return df
 
 
-def plotOneDay(ticker, start_time, end_time):
+def plotOneDay(ticker, start_time, end_time, principal):
     # get data using download method
     df = yf.download(ticker, start=start_time, end=end_time, interval="1d", progress=False)
     df = calculate_df(df)
     df = find_signals(df)
-    print_realtime_ratting(df)
+    df = print_trade(df, principal)
 
     return df
 
 
-def plotOneMinute(ticker, trade_day):
+def plotOneMinute(ticker, trade_day, principal):
     # get data using download method
-    start_time = pendulum.parse(trade_day + " 00:00")
-    end_time = pendulum.parse(trade_day + " 23:59")
-    df = yf.download(ticker, start=start_time, end=end_time, interval="1m", progress=False)
+    start_time = pendulum.parse(trade_day + " 00:08:00")
+    end_time = pendulum.parse(trade_day + " 23:59:59")
 
     # convert the index to Eastern Time and remove the timezone
+    df = yf.download(ticker, start=start_time, end=end_time, interval="1m", progress=False)
     df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
     df = calculate_df(df)
     df = find_signals(df)
-    print_realtime_ratting(df)
+    df = print_trade(df, principal)
 
     return df
 
 
-tickers = ["NVDA", "MSFT", "META", "TSM", "GOOGL", "AMZN", "QCOM", "AMD", "ORCL", "VZ", "NFLX", "JPM", "GS",
-           "MS", "WFC", "BAC", "V", "MA", "AXP", "CVX", "XOM", "MCD", "PEP", "KO", "PG", "ABBV", "MRK",
-           "LLY", "UNH", "PFE", "JNJ", "SPY", "SPLG"]
+tickers = [
+    "MSFT", "NVDA", "TSM", "GOOGL", "META", "ORCL", "AMZN", "QCOM", "AMD", "VZ", "NFLX", "ASML",
+    "JPM", "GS", "MS", "WFC", "BAC", "V", "MA", "AXP",
+    "CVX", "XOM", "TSLA", "SPLG"
+]
 
 today = datetime.today()
 date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
-principal = 10000.00
+principal = 10000
 
 # For all stocks in the list
 for x in tickers:
     now = datetime.now()
-    print("%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
-    plotOneMinute(x, "2023-06-30")
-    plotOneDay(x, "2020-01-01", date_string_today)
+    print("\n%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
+    df = plotOneMinute(x, "2023-07-03", principal)
+    print_realtime_ratting(df)
+
+    df = plotOneDay(x, "2020-01-01", date_string_today, principal)
+    print_realtime_ratting(df)
