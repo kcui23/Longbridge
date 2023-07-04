@@ -90,10 +90,11 @@ def find_signals(df):
     return df
 
 
-def print_trade(df):
-    df["Balance"] = 10000
+def print_trade(df, principal):
+    df["Balance"] = principal
     df["Position"] = 0
     df["Commission"] = 0.00
+    df["TotalAssets"] = 0.00
 
     for i in range(len(df)):
         df.iloc[i, df.columns.get_loc("Balance")] = df["Balance"][i - 1]
@@ -121,13 +122,19 @@ def print_trade(df):
                     break
 
             current_price = df["High"][i]
-            if current_price > last_buy_price:
+            if current_price >= last_buy_price * 1.01:
                 direction = "Sell"
                 commission = calculate_commission(current_price, position, direction)
                 df.iloc[i, df.columns.get_loc("Position")] = 0
                 df.iloc[i, df.columns.get_loc("Balance")] = balance + current_price * position - commission
                 df.iloc[i, df.columns.get_loc("Commission")] = commission
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
+
+        df.iloc[i, df.columns.get_loc("TotalAssets")] = \
+            df["Balance"][i] \
+                if df["Position"][i] == 0 else df["Balance"][i] + \
+                                               df["Close"][i] * \
+                                               df["Position"][i]
 
     return df
 
@@ -145,7 +152,9 @@ def print_trade_records(df):
                 df["Position"][i] if df["Position"][i] > 0 else df["Position"][i - 1],
                 df["Commission"][i],
                 f"{df['Balance'][i]:,.2f}",
-                f"{df['Balance'][i] + df['Close'][i] * df['Position'][i]:,.2f}"))
+                f"{df['TotalAssets'][i]:,.2f}"))
+
+    return df["TotalAssets"][len(df) - 1]
 
 
 def plot_vertical_lines(df, ax):
@@ -258,7 +267,7 @@ def plot_Volume(df, ax):
     ax.yaxis.set_label_position("right")
     ax.yaxis.set_ticks_position("right")
     [ax.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
-    ax.bar(df["Datetime"], df["Volume"], width=0.0005, color="#006d21")
+    ax.bar(df["Datetime"], df["Volume"], width=[0.0005 if len(df) <= 390 else 2000 / len(df)], color="#006d21")
     ax.set_ylim(0, max(df["Volume"]))
     ax.set_xticklabels([])
     ax.set_xticks([])
@@ -331,30 +340,30 @@ def plot_stock_screener(df, ticker, type):
     fig.savefig(file_name, transparent=True, bbox_inches="tight")
 
 
-def plotOneDay(ticker, start_time, end_time):
+def plotOneDay(ticker, start_time, end_time, principal):
     # get data using download method
     df = yf.download(ticker, start=start_time, end=end_time, interval="1d", progress=False)
     df = calculate_df(df)
     df = find_signals(df)
-    df = print_trade(df)
+    df = print_trade(df, principal)
 
     plot_stock_screener(df, ticker, "1d")
 
     return df
 
 
-def plotOneMinute(ticker, trade_day):
+def plotOneMinute(ticker, trade_day, principal):
     # get data using download method
-    start_time = pendulum.parse(trade_day + " 00:00")
-    end_time = pendulum.parse(trade_day + " 23:59")
-    df = yf.download(ticker, start=start_time, end=end_time, interval="1m", progress=False)
+    start_time = pendulum.parse(trade_day + " 00:08:00")
+    end_time = pendulum.parse(trade_day + " 23:59:59")
 
     # convert the index to Eastern Time and remove the timezone
+    df = yf.download(ticker, start=start_time, end=end_time, interval="1m", progress=False)
     df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
 
     df = calculate_df(df)
     df = find_signals(df)
-    df = print_trade(df)
+    df = print_trade(df, principal)
 
     plot_stock_screener(df, ticker, "1m")
 
@@ -364,33 +373,38 @@ def plotOneMinute(ticker, trade_day):
 tickers = [
     "MSFT", "NVDA", "TSM", "GOOGL", "META", "ORCL", "AMZN", "QCOM", "AMD", "VZ", "NFLX", "ASML",
     "JPM", "GS", "MS", "WFC", "BAC", "V", "MA", "AXP",
-    "CVX", "XOM", "TSLA",
-    "SPY", "SPLG"
+    "CVX", "XOM", "TSLA", "SPLG"
 ]
 
 today = datetime.today()
 date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
+principal = 10000
 
 # 1. For single stock
-print_trade_records(plotOneMinute("0700.hk", "2023-07-04"))
-print_trade_records(plotOneDay("0700.hk", "2020-01-01", date_string_today))
+print_trade_records(plotOneMinute("0004.hk", "2023-07-04", principal))
+print_trade_records(plotOneDay("0004.hk", "2020-01-01", date_string_today, principal))
 
 # 2. For all stocks in the list
 for x in tickers:
     now = datetime.now()
     print("\n%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
 
-    df = plotOneMinute(x, "2023-06-28")
+    df = plotOneMinute(x, "2023-06-28", principal)
     print_realtime_ratting(df)
     print_trade_records(df)
 
-    df = plotOneDay(x, "2020-01-01", date_string_today)
+    df = plotOneDay(x, "2020-01-01", date_string_today, principal)
     print_realtime_ratting(df)
     print_trade_records(df)
 
 # # 3. Day trade in recent 30 days
-# trade_days = generate_US_trade_days("2023-06-01", "2023-06-29")
+# trade_days = generate_US_trade_days("2023-06-04", date_string_today)
 #
 # for i in trade_days:
 #     trade_day = str(i)[:10]
+#     df = plotOneMinute("MSFT", trade_day, principal)
+#     print_realtime_ratting(df)
+#     principal = print_trade_records(df)
+#
+# print("Total: %10s" % f"{principal:,.2f}")
