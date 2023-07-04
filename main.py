@@ -12,15 +12,15 @@ import sys
 
 
 def print_realtime_ratting(df):
-    print("Datetime\t\t\tDIR\t\tPrice\tRSI\t\tCCI")
+    print("Datetime\t\t\tDIR\t\tPrice\tRSI\t\tDIF\t\tDEM")
     for i in range(len(df)):
         current = df["BuyIndex"][i]
         if current == "Buy" or current == "PotentialBuy":
-            print("%s\t\033[31mBuy   \t%.2f\033[0m\t%5.2f\t%5.2f" % (
-                df["Datetime"][i], df["Low"][i], df["RSI"][i], df["CCI"][i]))
+            print("%s\t\033[31mBuy \t%.2f\033[0m\t%5.2f\t%6.2f\t%6.2f" % (
+                df["Datetime"][i], df["Low"][i], df["RSI"][i], df["DIF"][i], df["DEM"][i]))
         elif current == "Sell" or current == "PotentialSell":
-            print("%s\t\033[34mSell  \t%.2f\033[0m\t%5.2f\t%5.2f" % (
-                df["Datetime"][i], df["High"][i], df["RSI"][i], df["CCI"][i]))
+            print("%s\t\033[34mSell\t%.2f\033[0m\t%5.2f\t%6.2f\t%6.2f" % (
+                df["Datetime"][i], df["High"][i], df["RSI"][i], df["DIF"][i], df["DEM"][i]))
 
 
 def generate_US_trade_days(start_date, end_date):
@@ -76,9 +76,9 @@ def find_signals(df):
             DIF_last = df["DIF"][i - 1]
             DEM_last = df["DEM"][i - 1]
 
-            if (DIF > DEM and DIF_last < DEM_last) and (DIF < 0 and DEM < 0) and (RSI <= 100) and (J >= K and J >= D):
+            if (DIF > DEM and DIF_last < DEM_last) and DIF <= 0 and (RSI <= 60) and (J >= K and J >= D):
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
-            elif (DIF < DEM and DIF_last > DEM_last) and (DIF > 0 and DEM > 0) and (RSI >= 20) and (J <= K and J <= D):
+            elif (DIF < DEM and DIF_last > DEM_last) and DIF >= 0 and (RSI >= 40) and (J <= K and J <= D):
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialSell"
             else:
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "Hold"
@@ -91,6 +91,7 @@ def find_signals(df):
 
 
 def print_trade(df, principal):
+    margin_limit = 0.00
     df["Balance"] = principal
     df["Position"] = 0
     df["Commission"] = 0.00
@@ -122,7 +123,7 @@ def print_trade(df, principal):
                     break
 
             current_price = df["High"][i]
-            if current_price >= last_buy_price * 1.01:
+            if current_price >= last_buy_price * (1 + margin_limit):
                 direction = "Sell"
                 commission = calculate_commission(current_price, position, direction)
                 df.iloc[i, df.columns.get_loc("Position")] = 0
@@ -145,7 +146,7 @@ def print_trade_records(df):
         direction = df["BuyIndex"][i]
 
         if direction == "Buy" or direction == "Sell":
-            print("%s\t%-4s\t%5.2f\t%4d\t%4.2f\t%10s\t%10s" % (
+            print("%s\t%-4s\t%5.2f\t%5d\t%6.2f\t%10s\t%10s" % (
                 df["Datetime"][i],
                 df["BuyIndex"][i],
                 df["Low"][i] if df["BuyIndex"][i] == "Buy" else df["High"][i],
@@ -323,7 +324,7 @@ def plot_stock_screener(df, ticker, type):
     mark_buy_and_sell(df, ax4)
 
     if type == "1d":
-        file_name = "1d %-5s %s %s.png" % (
+        file_name = "1d %-5s %s-%s.png" % (
             ticker, str(df["Datetime"][0])[:10],
             str(df["Datetime"][len(df) - 1])[:10])
         date_format = mdates.DateFormatter("%d/%m/%y")
@@ -382,29 +383,34 @@ date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
 # 1. For single stock
-print_trade_records(plotOneMinute("0004.hk", "2023-07-04", principal))
-print_trade_records(plotOneDay("0004.hk", "2020-01-01", date_string_today, principal))
+df = plotOneMinute("NVDA", "2023-06-30", principal)
+print_realtime_ratting(df)
+print_trade_records(df)
 
-# 2. For all stocks in the list
-for x in tickers:
-    now = datetime.now()
-    print("\n%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
+df = plotOneDay("NVDA", "2020-01-01", date_string_today, principal)
+print_realtime_ratting(df)
+print_trade_records(df)
 
-    df = plotOneMinute(x, "2023-06-28", principal)
-    print_realtime_ratting(df)
-    print_trade_records(df)
-
-    df = plotOneDay(x, "2020-01-01", date_string_today, principal)
-    print_realtime_ratting(df)
-    print_trade_records(df)
+# # 2. For all stocks in the list
+# for x in tickers:
+#     now = datetime.now()
+#     print("\n%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
+#
+#     df = plotOneMinute(x, "2023-06-28", principal)
+#     print_realtime_ratting(df)
+#     print_trade_records(df)
+#
+#     df = plotOneDay(x, "2020-01-01", date_string_today, principal)
+#     print_realtime_ratting(df)
+#     print_trade_records(df)
 
 # # 3. Day trade in recent 30 days
 # trade_days = generate_US_trade_days("2023-06-04", date_string_today)
 #
 # for i in trade_days:
 #     trade_day = str(i)[:10]
-#     df = plotOneMinute("MSFT", trade_day, principal)
-#     print_realtime_ratting(df)
+#     df = plotOneMinute("NVDA", trade_day, principal)
+#     # print_realtime_ratting(df)
 #     principal = print_trade_records(df)
 #
 # print("Total: %10s" % f"{principal:,.2f}")
