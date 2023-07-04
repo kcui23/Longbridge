@@ -12,12 +12,15 @@ import sys
 
 
 def print_realtime_ratting(df):
+    print("Datetime\t\t\tDIR\t\tPrice\tRSI\t\tCCI")
     for i in range(len(df)):
         current = df["BuyIndex"][i]
         if current == "Buy" or current == "PotentialBuy":
-            print("%s\t\033[31mBuy   \t%.2f\033[0m\tRSI: %5.2f" % (df["Datetime"][i], df["Low"][i], df["RSI"][i]))
+            print("%s\t\033[31mBuy   \t%.2f\033[0m\t%5.2f\t%5.2f" % (
+                df["Datetime"][i], df["Low"][i], df["RSI"][i], df["CCI"][i]))
         elif current == "Sell" or current == "PotentialSell":
-            print("%s\t\033[34mSell  \t%.2f\033[0m\tRSI: %5.2f" % (df["Datetime"][i], df["High"][i], df["RSI"][i]))
+            print("%s\t\033[34mSell  \t%.2f\033[0m\t%5.2f\t%5.2f" % (
+                df["Datetime"][i], df["High"][i], df["RSI"][i], df["CCI"][i]))
 
 
 def generate_US_trade_days(start_date, end_date):
@@ -73,9 +76,9 @@ def find_signals(df):
             DIF_last = df["DIF"][i - 1]
             DEM_last = df["DEM"][i - 1]
 
-            if (DIF > DEM and DIF_last < DEM_last) and (DIF < 0 and DEM < 0) and (RSI <= 60) and (J >= K and J >= D):
+            if (DIF > DEM and DIF_last < DEM_last) and (DIF < 0 and DEM < 0) and (RSI <= 100) and (J >= K and J >= D):
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
-            elif (DIF < DEM and DIF_last > DEM_last) and (DIF > 0 and DEM > 0) and (RSI >= 30) and (J <= K and J <= D):
+            elif (DIF < DEM and DIF_last > DEM_last) and (DIF > 0 and DEM > 0) and (RSI >= 20) and (J <= K and J <= D):
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialSell"
             else:
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "Hold"
@@ -93,7 +96,6 @@ def print_trade(df):
     df["Commission"] = 0.00
 
     for i in range(len(df)):
-
         df.iloc[i, df.columns.get_loc("Balance")] = df["Balance"][i - 1]
         df.iloc[i, df.columns.get_loc("Position")] = df["Position"][i - 1]
         position = df["Position"][i]
@@ -112,7 +114,6 @@ def print_trade(df):
             df.iloc[i, df.columns.get_loc("Balance")] = balance
             df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
         elif direction == "PotentialSell" and position > 0:
-
             last_buy_price = sys.float_info.max
             for j in range(i - 1, -1, -1):
                 if df["BuyIndex"][j] == "Buy":
@@ -257,7 +258,6 @@ def plot_Volume(df, ax):
     ax.yaxis.set_label_position("right")
     ax.yaxis.set_ticks_position("right")
     [ax.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
-    ax.tick_params(axis="x", top=False)
     ax.bar(df["Datetime"], df["Volume"], width=0.0005, color="#006d21")
     ax.set_ylim(0, max(df["Volume"]))
     ax.set_xticklabels([])
@@ -267,7 +267,7 @@ def plot_Volume(df, ax):
     x_new = pd.date_range(df["Datetime"].min(), df["Datetime"].max(), periods=300)
     spl = make_interp_spline(df["Datetime"], df["Volume"], k=3)
     volume_smooth = spl(x_new)
-    plt.plot(x_new, volume_smooth * 1, color="#ffa500", linewidth=1)
+    plt.plot(x_new, volume_smooth * 2, color="#ffa500", linewidth=1, alpha=0.8)
 
 
 def calculate_df(df):
@@ -337,6 +337,7 @@ def plotOneDay(ticker, start_time, end_time):
     df = calculate_df(df)
     df = find_signals(df)
     df = print_trade(df)
+
     plot_stock_screener(df, ticker, "1d")
 
     return df
@@ -354,6 +355,7 @@ def plotOneMinute(ticker, trade_day):
     df = calculate_df(df)
     df = find_signals(df)
     df = print_trade(df)
+
     plot_stock_screener(df, ticker, "1m")
 
     return df
@@ -362,7 +364,7 @@ def plotOneMinute(ticker, trade_day):
 tickers = [
     "MSFT", "NVDA", "TSM", "GOOGL", "META", "ORCL", "AMZN", "QCOM", "AMD", "VZ", "NFLX", "ASML",
     "JPM", "GS", "MS", "WFC", "BAC", "V", "MA", "AXP",
-    "CVX", "XOM",
+    "CVX", "XOM", "TSLA",
     "SPY", "SPLG"
 ]
 
@@ -370,16 +372,16 @@ today = datetime.today()
 date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 
-# # 1. For single stock
-# print_trade_records(plotOneMinute("0700.hk", "2023-07-03"))
-# print_trade_records(plotOneDay("0700.hk", "2020-01-01", date_string_today))
+# 1. For single stock
+print_trade_records(plotOneMinute("0700.hk", "2023-07-04"))
+print_trade_records(plotOneDay("0700.hk", "2020-01-01", date_string_today))
 
 # 2. For all stocks in the list
 for x in tickers:
     now = datetime.now()
     print("\n%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
 
-    df = plotOneMinute(x, "2023-06-30")
+    df = plotOneMinute(x, "2023-06-28")
     print_realtime_ratting(df)
     print_trade_records(df)
 
