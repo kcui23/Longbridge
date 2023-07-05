@@ -4,7 +4,9 @@
     <title>Stock Screener</title>
     <style>
         table {
+            padding: 5%;
             border-collapse: collapse;
+            width: 100%;
         }
 
         table, th, td {
@@ -16,7 +18,7 @@
         }
 
         th, td {
-            text-align: center;
+            text-align: right;
         }
 
         thead {
@@ -27,21 +29,46 @@
         th {
             font-weight: bold;
         }
+
+        label {
+            text-align: start;
+        }
+
+        .btn-primary {
+            background-color: #0055cc;
+            color: white;
+        }
+
+        .btn {
+            background-color: #0055cc;
+            color: white;
+        }
+
     </style>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script>
-
-
     </script>
 </head>
 <body>
 <div class="table-responsive">
-    <form method="POST" action="/query_ticker" >
-        <label for="ticker">Enter a ticker</label>
-        <input type="text" id="ticker" name="ticker" placeholder="NVDA" required>
-
-        <button type="submit" id="query" name="query" value="Query">Query</button>
+    <form method="POST" action="/query_ticker">
+        <div class="form-group">
+            <label for="ticker">Enter a ticker</label>
+            <input type="text" id="ticker" name="ticker" value="nvda" class="form-control" aria-describedby="tickerHelp"
+                   placeholder="nvda">
+            <small id="tickerHelp" class="form-text text-muted">We'll never share your query history with anyone
+                else.</small>
+        </div>
+        <div class="form-group">
+            <label for="trade_date">Trade day</label>
+            <input type="date" id="trade_date" name="trade_date" class="form-control" value="2023-07-03"
+                   min="2023-06-10" max="2023-7-31">
+        </div>
+        <button type="submit" id="query" name="query" class="btn btn-primary" style="background-color: #0055cc">
+            Query
+        </button>
     </form>
+
     {{ table|safe }}
 </div>
 </body>
