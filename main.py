@@ -102,10 +102,23 @@ def print_trade(df, principal):
         df.iloc[i, df.columns.get_loc("Commission")] = commission
         df.iloc[i, df.columns.get_loc("Balance")] = balance
         df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
-        df.iloc[i, df.columns.get_loc("Cost")] = (current_price + commission) / position
+        df.iloc[i, df.columns.get_loc("Cost")] = current_price + commission / position
 
-    stop_loss_limit = 0.9
-    margin_limit = 0.01
+    def sell(i):
+        direction = "Sell"
+        balance = df["Balance"][i]
+        current_price = df["High"][i]
+        position = df["Position"][i]
+        commission = calculate_commission(current_price, position, direction)
+
+        df.iloc[i, df.columns.get_loc("Position")] = 0
+        df.iloc[i, df.columns.get_loc("Balance")] = balance + current_price * position - commission
+        df.iloc[i, df.columns.get_loc("Commission")] = commission
+        df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
+        df.iloc[i, df.columns.get_loc("Cost")] = 0
+
+    stop_loss_limit = 0.005
+    margin_limit = 0.02
     df["Balance"] = principal
     df["Position"] = 0
     df["Commission"] = 0.00
@@ -117,7 +130,6 @@ def print_trade(df, principal):
         df.iloc[i, df.columns.get_loc("Position")] = df["Position"][i - 1]
         df.iloc[i, df.columns.get_loc("Cost")] = df["Cost"][i - 1]
         position = df["Position"][i]
-        balance = df["Balance"][i]
         direction = df["BuyIndex"][i]
 
         if direction == "PotentialBuy" and position == 0:
@@ -127,23 +139,13 @@ def print_trade(df, principal):
             last_buy_price = df["Cost"][i]
 
             if direction == "PotentialSell" and (current_price >= last_buy_price * (1 + margin_limit)):
-                direction = "Sell"
-
-                commission = calculate_commission(current_price, position, direction)
-                df.iloc[i, df.columns.get_loc("Position")] = 0
-                df.iloc[i, df.columns.get_loc("Balance")] = balance + current_price * position - commission
-                df.iloc[i, df.columns.get_loc("Commission")] = commission
-                df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
-                df.iloc[i, df.columns.get_loc("Cost")] = 0
+                # res = last_buy_price * (1 + margin_limit)
+                # print("Sell\t%.2f >= %.2f * (1 + %.2f) = %.2f" % (current_price, last_buy_price, margin_limit, res))
+                sell(i)
             elif current_price <= last_buy_price * (1 - stop_loss_limit):
-                direction = "Sell"
-
-                commission = calculate_commission(current_price, position, direction)
-                df.iloc[i, df.columns.get_loc("Position")] = 0
-                df.iloc[i, df.columns.get_loc("Balance")] = balance + current_price * position - commission
-                df.iloc[i, df.columns.get_loc("Commission")] = commission
-                df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
-                df.iloc[i, df.columns.get_loc("Cost")] = 0
+                # Stop loss
+                # print("Buy \t%.2f <= %.2f" % (current_price, last_buy_price))
+                sell(i)
 
         df.iloc[i, df.columns.get_loc("TotalAssets")] = \
             df["Balance"][i] \
