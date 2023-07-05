@@ -1,9 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Home</title>
+    <title>Stock Screener</title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 0 solid black;
+        }
+
+        th, td {
+            padding: 10px;
+        }
+
+        th, td {
+            text-align: center;
+        }
+
+        thead {
+            color: #ffffff;
+            background-color: #0055cc;
+        }
+
+        th {
+            font-weight: bold;
+        }
+    </style>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script>
+
+
+    </script>
 </head>
 <body>
-{{ table|safe }}
+<div class="table-responsive">
+    <form method="POST" action="/query_ticker" >
+        <label for="ticker">Enter a ticker</label>
+        <input type="text" id="ticker" name="ticker" placeholder="NVDA" required>
+        <button type="submit" id="query" name="query" value="Query">Query</button>
+    </form>
+    {{ table|safe }}
+</div>
 </body>
 </html>
