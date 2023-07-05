@@ -386,7 +386,7 @@ def plotOneMinute(ticker, trade_day, principal):
     df = find_signals(df)
     df = print_trade(df, principal)
 
-    plot_stock_screener(df, ticker, "1m")
+    # plot_stock_screener(df, ticker, "1m")
 
     return df
 
@@ -409,29 +409,21 @@ app = Flask(__name__, template_folder="template")
 def get_ticker():
     if request.method == "POST":
         ticker = request.form["ticker"]
-        df = plotOneMinute(ticker, "2023-06-30", principal)
+        trade_date = request.form["trade_date"]
+
+        df = plotOneMinute(ticker, trade_date, principal)
+
         df = df.query(
-            'BuyIndex == "Buy" | BuyIndex == "potentialBuy" | BuyIndex == "Sell" | BuyIndex == "potentialSell"'
+            'BuyIndex == "Buy" | BuyIndex == "PotentialBuy" | BuyIndex == "Sell" | BuyIndex == "PotentialSell"'
         )
         df = df[
-            ["BuyIndex", "Open", "High", "Low", "Close", "Adj Close", "DIF", "DEM", "Histogram", "RSI", "KDJ", "CCI"]
+            ["BuyIndex", "High", "Low", "DIF", "DEM", "RSI", "KDJ", "CCI"]
         ]
 
         table = df.to_html(float_format="{:,.2f}".format)
         return render_template("home.html", table=table)
     else:
-
-        df = plotOneMinute("NVDA", "2023-06-30", principal)
-        df = df.query(
-            'BuyIndex == "Buy" | BuyIndex == "potentialBuy" | BuyIndex == "Sell" | BuyIndex == "potentialSell"'
-        )
-        df = df[
-            ["BuyIndex", "Open", "High", "Low", "Close", "Adj Close", "DIF", "DEM", "Histogram", "RSI", "KDJ", "CCI"]
-        ]
-
-        table = df.to_html(float_format="{:,.2f}".format)
-        return render_template("home.html", table=table)
-
+        return render_template("home.html")
 
 
 @app.route("/")
@@ -440,6 +432,7 @@ def home():
 
 
 if __name__ == "__main__":
+    # app.run(host="109.123.236.116", port=8088, debug=None)
     app.run(host="localhost", port=8088, debug=None)
 
 # # 1. For single stock
