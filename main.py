@@ -8,7 +8,7 @@ import ta
 import pendulum
 from datetime import datetime
 from scipy.interpolate import make_interp_spline
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 
 
 def print_realtime_ratting(df):
@@ -405,12 +405,28 @@ principal = 10000
 app = Flask(__name__, template_folder="template")
 
 
+@app.route("/query_ticker", methods=["GET", "POST"])
+def get_ticker():
+    if request.method == "POST":
+        ticker = request.form["ticker"]
+        df = plotOneMinute(ticker, "2023-06-30", principal)
+        df = df.query(
+            'BuyIndex == "Buy" | BuyIndex == "potentialBuy" | BuyIndex == "Sell" | BuyIndex == "potentialSell"'
+        )
+        df = df[
+            ["BuyIndex", "Open", "High", "Low", "Close", "Adj Close", "DIF", "DEM", "Histogram", "RSI", "KDJ", "CCI"]
+        ]
+
+        table = df.to_html(float_format="{:,.2f}".format)
+        return render_template("home.html", table=table)
+    else:
+
+        return "GET"
+
+
 @app.route("/")
 def home():
-    df = plotOneMinute("AMD", "2023-06-30", principal)
-    table = df.to_html()
-
-    return render_template("home.html", table=table)
+    get_ticker()
 
 
 if __name__ == "__main__":
