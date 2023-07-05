@@ -8,6 +8,7 @@ import ta
 import pendulum
 from datetime import datetime
 from scipy.interpolate import make_interp_spline
+from flask import Flask, render_template
 
 
 def print_realtime_ratting(df):
@@ -75,9 +76,9 @@ def find_signals(df):
             DIF_last = df["DIF"][i - 1]
             DEM_last = df["DEM"][i - 1]
 
-            if (DIF > DEM and DIF_last < DEM_last) and RSI <= 60 and (J >= K and J >= D):
+            if (DIF > DEM and DIF_last < DEM_last) and RSI <= 65 and (J >= K and J >= D):
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
-            elif (DIF < DEM and DIF_last > DEM_last) and RSI >= 40 and (J <= K and J <= D):
+            elif (DIF < DEM and DIF_last > DEM_last) and RSI >= 45 and (J <= K and J <= D):
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialSell"
             else:
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "Hold"
@@ -118,7 +119,7 @@ def print_trade(df, principal):
         df.iloc[i, df.columns.get_loc("Cost")] = 0
 
     take_profit_limit = 0.005
-    stop_loss_limit = 0.002
+    stop_loss_limit = 0.005
     df["Balance"] = principal
     df["Position"] = 0
     df["Commission"] = 0.00
@@ -401,21 +402,35 @@ date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
-# 1. For single stock
-df = plotOneMinute("NVDA", "2023-06-30", principal)
-print_realtime_ratting(df)
-print(f"{print_trade_records(df):,.2f}")
+app = Flask(__name__, template_folder="template")
 
-df = plotOneDay("NVDA", "2020-01-01", date_string_today, principal)
-print_realtime_ratting(df)
-print(f"{print_trade_records(df):,.2f}")
+
+@app.route("/")
+def home():
+    df = plotOneMinute("AMD", "2023-06-30", principal)
+    table = df.to_html()
+
+    return render_template("home.html", table=table)
+
+
+if __name__ == "__main__":
+    app.run(host="localhost", port=8088, debug=None)
+
+# # 1. For single stock
+# df = plotOneMinute("AMD", "2023-06-30", principal)
+# print_realtime_ratting(df)
+# print(f"{print_trade_records(df):,.2f}")
+#
+# df = plotOneDay("AMD", "2020-01-01", date_string_today, principal)
+# print_realtime_ratting(df)
+# print(f"{print_trade_records(df):,.2f}")
 
 # # 2. For all stocks in the list
 # for x in tickers:
 #     now = datetime.now()
 #     print("\n%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
 #
-#     df = plotOneMinute(x, "2023-06-27", principal)
+#     df = plotOneMinute(x, "2023-06-28", principal)
 #     print_realtime_ratting(df)
 #     print(f"{print_trade_records(df):,.2f}", x)
 #
