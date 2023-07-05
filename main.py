@@ -117,13 +117,14 @@ def print_trade(df, principal):
         df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
         df.iloc[i, df.columns.get_loc("Cost")] = 0
 
-    stop_loss_limit = 0.005
-    margin_limit = 0.02
+    take_profit_limit = 0.005
+    stop_loss_limit = 0.002
     df["Balance"] = principal
     df["Position"] = 0
     df["Commission"] = 0.00
     df["Cost"] = 0.00
     df["TotalAssets"] = 0.00
+    df["Remarks"] = ""
 
     for i in range(len(df)):
         df.iloc[i, df.columns.get_loc("Balance")] = df["Balance"][i - 1]
@@ -138,14 +139,14 @@ def print_trade(df, principal):
             current_price = df["High"][i]
             last_buy_price = df["Cost"][i]
 
-            if direction == "PotentialSell" and (current_price >= last_buy_price * (1 + margin_limit)):
-                # res = last_buy_price * (1 + margin_limit)
-                # print("Sell\t%.2f >= %.2f * (1 + %.2f) = %.2f" % (current_price, last_buy_price, margin_limit, res))
+            if direction == "PotentialSell" and (current_price >= last_buy_price * (1 + take_profit_limit)):
                 sell(i)
+                res = last_buy_price * (1 + take_profit_limit)
+                df.iloc[i, df.columns.get_loc("Remarks")] = ">= %.2f" % res
             elif current_price <= last_buy_price * (1 - stop_loss_limit):
-                # Stop loss
-                # print("Buy \t%.2f <= %.2f" % (current_price, last_buy_price))
                 sell(i)
+                res = last_buy_price * (1 - stop_loss_limit)
+                df.iloc[i, df.columns.get_loc("Remarks")] = "<= %.2f" % res
 
         df.iloc[i, df.columns.get_loc("TotalAssets")] = \
             df["Balance"][i] \
@@ -157,19 +158,20 @@ def print_trade(df, principal):
 
 
 def print_trade_records(df):
-    print("\nDatetime\t\t\tDIR\t\tPrice\tPSN\t\tCMS\t\tBalance\t\tTotal")
+    print("\nDatetime\t\t\tDIR\t\tPrice\tPSN\t\tCMS\t\tBalance\t\tTotal\t\tRemarks")
     for i in range(len(df)):
         direction = df["BuyIndex"][i]
 
         if direction == "Buy" or direction == "Sell":
-            print("%s\t%-4s\t%5.2f\t%5d\t%6.2f\t%10s\t%10s" % (
+            print("%s\t%-4s\t%5.2f\t%5d\t%6.2f\t%10s\t%10s\t%s" % (
                 df["Datetime"][i],
                 df["BuyIndex"][i],
                 df["Low"][i] if df["BuyIndex"][i] == "Buy" else df["High"][i],
                 df["Position"][i] if df["Position"][i] > 0 else df["Position"][i - 1],
                 df["Commission"][i],
                 f"{df['Balance'][i]:,.2f}",
-                f"{df['TotalAssets'][i]:,.2f}"))
+                f"{df['TotalAssets'][i]:,.2f}",
+                df["Remarks"][i]))
 
     return df["TotalAssets"][len(df) - 1]
 
@@ -399,35 +401,35 @@ date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
-# # 1. For single stock
-# df = plotOneMinute("AMD", "2023-06-30", principal)
-# print_realtime_ratting(df)
-# print(f"{print_trade_records(df):,.2f}")
+# 1. For single stock
+df = plotOneMinute("NVDA", "2023-06-30", principal)
+print_realtime_ratting(df)
+print(f"{print_trade_records(df):,.2f}")
+
+df = plotOneDay("NVDA", "2020-01-01", date_string_today, principal)
+print_realtime_ratting(df)
+print(f"{print_trade_records(df):,.2f}")
+
+# # 2. For all stocks in the list
+# for x in tickers:
+#     now = datetime.now()
+#     print("\n%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
 #
-# df = plotOneDay("AMD", "2020-01-01", date_string_today, principal)
-# print_realtime_ratting(df)
-# print(f"{print_trade_records(df):,.2f}")
-
-# 2. For all stocks in the list
-for x in tickers:
-    now = datetime.now()
-    print("\n%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
-
-    df = plotOneMinute(x, "2023-06-28", principal)
-    print_realtime_ratting(df)
-    print(f"{print_trade_records(df):,.2f}")
-
-    df = plotOneDay(x, "2020-01-01", date_string_today, principal)
-    print_realtime_ratting(df)
-    print(f"{print_trade_records(df):,.2f}")
+#     df = plotOneMinute(x, "2023-06-27", principal)
+#     print_realtime_ratting(df)
+#     print(f"{print_trade_records(df):,.2f}", x)
+#
+#     df = plotOneDay(x, "2020-01-01", date_string_today, principal)
+#     print_realtime_ratting(df)
+#     print(f"{print_trade_records(df):,.2f}", x)
 
 # # 3. Day trade in recent 30 days
-# trade_days = generate_US_trade_days("2023-06-04", date_string_today)
+# trade_days = generate_US_trade_days("2023-06-06", "2023-07-03")
 #
 # for i in trade_days:
 #     trade_day = str(i)[:10]
-#     df = plotOneMinute("NVDA", trade_day, principal)
-#     # print_realtime_ratting(df)
+#     df = plotOneMinute("ORCL", trade_day, principal)
+#     print_realtime_ratting(df)
 #     principal = print_trade_records(df)
 #
 # print("Total: %10s" % f"{principal:,.2f}")
