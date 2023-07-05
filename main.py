@@ -12,15 +12,15 @@ import sys
 
 
 def print_realtime_ratting(df):
-    print("Datetime\t\t\tDIR\t\tPrice\tRSI\t\tDIF\t\tDEM")
+    print("Datetime\t\t\tDIR\t\tPrice\tRSI\t\tDIF\t\tDEM\t\tKDJ")
     for i in range(len(df)):
         current = df["BuyIndex"][i]
         if current == "Buy" or current == "PotentialBuy":
-            print("%s\t\033[31mBuy \t%.2f\033[0m\t%5.2f\t%6.2f\t%6.2f" % (
-                df["Datetime"][i], df["Low"][i], df["RSI"][i], df["DIF"][i], df["DEM"][i]))
+            print("%s\t\033[31mBuy \t%.2f\033[0m\t%5.2f\t%6.2f\t%6.2f\t%6.2f" % (
+                df["Datetime"][i], df["Low"][i], df["RSI"][i], df["DIF"][i], df["DEM"][i], df["KDJ"][i]))
         elif current == "Sell" or current == "PotentialSell":
-            print("%s\t\033[34mSell\t%.2f\033[0m\t%5.2f\t%6.2f\t%6.2f" % (
-                df["Datetime"][i], df["High"][i], df["RSI"][i], df["DIF"][i], df["DEM"][i]))
+            print("%s\t\033[34mSell\t%.2f\033[0m\t%5.2f\t%6.2f\t%6.2f\t%6.2f" % (
+                df["Datetime"][i], df["High"][i], df["RSI"][i], df["DIF"][i], df["DEM"][i], df["KDJ"][i]))
 
 
 def generate_US_trade_days(start_date, end_date):
@@ -76,9 +76,9 @@ def find_signals(df):
             DIF_last = df["DIF"][i - 1]
             DEM_last = df["DEM"][i - 1]
 
-            if (DIF > DEM and DIF_last < DEM_last) and DIF <= 0 and (RSI <= 60) and (J >= K and J >= D):
+            if (DIF > DEM and DIF_last < DEM_last) and RSI <= 60 and (J >= K and J >= D):
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
-            elif (DIF < DEM and DIF_last > DEM_last) and DIF >= 0 and (RSI >= 40) and (J <= K and J <= D):
+            elif (DIF < DEM and DIF_last > DEM_last) and RSI >= 40 and (J <= K and J <= D):
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialSell"
             else:
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "Hold"
@@ -91,15 +91,18 @@ def find_signals(df):
 
 
 def print_trade(df, principal):
+    stop_loss_limit = 0.02
     margin_limit = 0.00
     df["Balance"] = principal
     df["Position"] = 0
     df["Commission"] = 0.00
+    df["Cost"] = 0.00
     df["TotalAssets"] = 0.00
 
     for i in range(len(df)):
         df.iloc[i, df.columns.get_loc("Balance")] = df["Balance"][i - 1]
         df.iloc[i, df.columns.get_loc("Position")] = df["Position"][i - 1]
+        df.iloc[i, df.columns.get_loc("Cost")] = df["Cost"][i - 1]
         position = df["Position"][i]
         balance = df["Balance"][i]
         direction = df["BuyIndex"][i]
@@ -115,14 +118,12 @@ def print_trade(df, principal):
             df.iloc[i, df.columns.get_loc("Commission")] = commission
             df.iloc[i, df.columns.get_loc("Balance")] = balance
             df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
+            df.iloc[i, df.columns.get_loc("Cost")] = current_price
         elif direction == "PotentialSell" and position > 0:
-            last_buy_price = sys.float_info.max
-            for j in range(i - 1, -1, -1):
-                if df["BuyIndex"][j] == "Buy":
-                    last_buy_price = df["Low"][j]
-                    break
 
             current_price = df["High"][i]
+            last_buy_price = df["Cost"][i]
+
             if current_price >= last_buy_price * (1 + margin_limit):
                 direction = "Sell"
                 commission = calculate_commission(current_price, position, direction)
@@ -130,6 +131,7 @@ def print_trade(df, principal):
                 df.iloc[i, df.columns.get_loc("Balance")] = balance + current_price * position - commission
                 df.iloc[i, df.columns.get_loc("Commission")] = commission
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
+                df.iloc[i, df.columns.get_loc("Cost")] = 0
 
         df.iloc[i, df.columns.get_loc("TotalAssets")] = \
             df["Balance"][i] \
@@ -171,7 +173,7 @@ def plot_vertical_lines(df, ax):
 def mark_buy_and_sell(df, ax):
     for i in range(len(df)):
         x_trade = df["Datetime"][i]
-        y_trade = -200
+        y_trade = -100
         if df["BuyIndex"][i] == "Buy":
             text = "B\n" + f"{df['Low'][i]:,.2f}"
             ax.annotate(text, xy=(x_trade, y_trade), xytext=(
@@ -239,6 +241,7 @@ def plot_RSI(df, ax):
     ax.yaxis.set_label_position("right")
     ax.yaxis.set_ticks_position("right")
     ax.plot(df["Datetime"], df["RSI"], label="RSI", color="#0055cc", linewidth=1)
+    # ax.plot(df["Datetime"], df["CCI"] / 4, label="CCI", color="#ff2f92", linewidth=1)
     [ax.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
     ax.set_xticklabels([])
     ax.set_xticks([])
@@ -258,7 +261,7 @@ def plot_KDJ(df, ax):
     [ax.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
     ax.set_xticklabels([])
     ax.set_xticks([])
-    ax.set_ylim(-200, 200)
+    ax.set_ylim(-100, 200)
 
 
 def plot_Volume(df, ax):
@@ -324,7 +327,7 @@ def plot_stock_screener(df, ticker, type):
     mark_buy_and_sell(df, ax4)
 
     if type == "1d":
-        file_name = "1d %-5s %s-%s.png" % (
+        file_name = "1d %-5s %s %s.png" % (
             ticker, str(df["Datetime"][0])[:10],
             str(df["Datetime"][len(df) - 1])[:10])
         date_format = mdates.DateFormatter("%d/%m/%y")
@@ -383,11 +386,11 @@ date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
 # 1. For single stock
-df = plotOneMinute("NVDA", "2023-06-30", principal)
+df = plotOneMinute("AMD", "2023-06-30", principal)
 print_realtime_ratting(df)
 print_trade_records(df)
 
-df = plotOneDay("NVDA", "2020-01-01", date_string_today, principal)
+df = plotOneDay("AMD", "2020-01-01", date_string_today, principal)
 print_realtime_ratting(df)
 print_trade_records(df)
 
