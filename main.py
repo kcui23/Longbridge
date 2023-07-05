@@ -421,7 +421,17 @@ def get_ticker():
         return render_template("home.html", table=table)
     else:
 
-        return "GET"
+        df = plotOneMinute("NVDA", "2023-06-30", principal)
+        df = df.query(
+            'BuyIndex == "Buy" | BuyIndex == "potentialBuy" | BuyIndex == "Sell" | BuyIndex == "potentialSell"'
+        )
+        df = df[
+            ["BuyIndex", "Open", "High", "Low", "Close", "Adj Close", "DIF", "DEM", "Histogram", "RSI", "KDJ", "CCI"]
+        ]
+
+        table = df.to_html(float_format="{:,.2f}".format)
+        return render_template("home.html", table=table)
+
 
 
 @app.route("/")

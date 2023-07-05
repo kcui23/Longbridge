@@ -39,6 +39,7 @@
     <form method="POST" action="/query_ticker" >
         <label for="ticker">Enter a ticker</label>
         <input type="text" id="ticker" name="ticker" placeholder="NVDA" required>
+
         <button type="submit" id="query" name="query" value="Query">Query</button>
     </form>
     {{ table|safe }}
