@@ -8,7 +8,6 @@ import ta
 import pendulum
 from datetime import datetime
 from scipy.interpolate import make_interp_spline
-import sys
 
 
 def print_realtime_ratting(df):
@@ -91,8 +90,11 @@ def find_signals(df):
 
 
 def print_trade(df, principal):
-    stop_loss_limit = 0.02
-    margin_limit = 0.00
+    def sell():
+        print(stop_loss_limit, margin_limit)
+
+    stop_loss_limit = -0.02
+    margin_limit = 0.02
     df["Balance"] = principal
     df["Position"] = 0
     df["Commission"] = 0.00
@@ -108,8 +110,8 @@ def print_trade(df, principal):
         direction = df["BuyIndex"][i]
 
         if direction == "PotentialBuy" and position == 0:
-            current_price = df["Low"][i]
             direction = "Buy"
+            current_price = df["Low"][i]
             position = calculate_buy_position(current_price, balance, direction)
             commission = calculate_commission(current_price, position, direction)
             balance = balance - current_price * position - commission
@@ -118,13 +120,26 @@ def print_trade(df, principal):
             df.iloc[i, df.columns.get_loc("Commission")] = commission
             df.iloc[i, df.columns.get_loc("Balance")] = balance
             df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
-            df.iloc[i, df.columns.get_loc("Cost")] = current_price
+            df.iloc[i, df.columns.get_loc("Cost")] = (current_price + commission) / position
         elif direction == "PotentialSell" and position > 0:
-
             current_price = df["High"][i]
             last_buy_price = df["Cost"][i]
 
             if current_price >= last_buy_price * (1 + margin_limit):
+                direction = "Sell"
+                commission = calculate_commission(current_price, position, direction)
+                df.iloc[i, df.columns.get_loc("Position")] = 0
+                df.iloc[i, df.columns.get_loc("Balance")] = balance + current_price * position - commission
+                df.iloc[i, df.columns.get_loc("Commission")] = commission
+                df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
+                df.iloc[i, df.columns.get_loc("Cost")] = 0
+        elif position > 0:
+
+            # Stop loss
+            current_price = df["High"][i]
+            last_buy_price = df["Cost"][i]
+
+            if current_price <= last_buy_price * (1 - stop_loss_limit):
                 direction = "Sell"
                 commission = calculate_commission(current_price, position, direction)
                 df.iloc[i, df.columns.get_loc("Position")] = 0
@@ -388,11 +403,11 @@ principal = 10000
 # 1. For single stock
 df = plotOneMinute("AMD", "2023-06-30", principal)
 print_realtime_ratting(df)
-print_trade_records(df)
+print(f"{print_trade_records(df):,.2f}")
 
 df = plotOneDay("AMD", "2020-01-01", date_string_today, principal)
 print_realtime_ratting(df)
-print_trade_records(df)
+print(f"{print_trade_records(df):,.2f}")
 
 # # 2. For all stocks in the list
 # for x in tickers:
@@ -401,11 +416,11 @@ print_trade_records(df)
 #
 #     df = plotOneMinute(x, "2023-06-28", principal)
 #     print_realtime_ratting(df)
-#     print_trade_records(df)
+#     print(print_trade_records(df))
 #
 #     df = plotOneDay(x, "2020-01-01", date_string_today, principal)
 #     print_realtime_ratting(df)
-#     print_trade_records(df)
+#     print(print_trade_records(df))
 
 # # 3. Day trade in recent 30 days
 # trade_days = generate_US_trade_days("2023-06-04", date_string_today)
