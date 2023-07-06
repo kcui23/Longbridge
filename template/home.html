@@ -4,9 +4,10 @@
     <title>Stock Screener</title>
     <style>
         table {
+            /*width: 100%;*/
             font-family: Menlo, system-ui;
+            color: #0055cc;
             border-collapse: collapse;
-            width: 100%;
         }
 
         table, th, td {
@@ -34,25 +35,52 @@
     </script>
 </head>
 <body>
-<div class="table-responsive">
-    <form method="POST" action="/query_ticker">
-        <div class="form-group">
-            <label for="ticker">Enter a ticker</label>
-            <input type="text" id="ticker" name="ticker" value="nvda" class="form-control" aria-describedby="tickerHelp"
-                   placeholder="nvda">
-            <small id="tickerHelp" class="form-text text-muted">We'll never share your query history with anyone
-                else.</small>
-        </div>
-        <div class="form-group">
-            <label for="trade_date">Trade day</label>
-            <input type="date" id="trade_date" name="trade_date" class="form-control" value="2023-07-05"
-                   min="2023-06-10" max="2023-7-31">
-        </div>
+
+<form method="POST" action="/query_ticker" style="margin: 2%">
+    <div class="form-group">
+        <label for="ticker">Pick a ticker</label>
+        <select class="form-control" name="ticker" id="ticker" aria-describedby="tickerHelp">
+            <option value="MSFT">MSFT</option>
+            <option value="NVDA">NVDA</option>
+            <option value="TSM">TSM</option>
+            <option value="GOOGL">GOOGL</option>
+            <option value="META">META</option>
+            <option value="ORCL">ORCL</option>
+            <option value="AMZN">AMZN</option>
+            <option value="QCOM">QCOM</option>
+            <option value="AMD">AMD</option>
+            <option value="VZ">VZ</option>
+            <option value="NFLX">NFLX</option>
+            <option value="ASML">ASML</option>
+            <option value="JPM">JPM</option>
+            <option value="GS">GS</option>
+            <option value="MS">MS</option>
+            <option value="WFC">WFC</option>
+            <option value="BAC">BAC</option>
+            <option value="V">V</option>
+            <option value="MA">MA</option>
+            <option value="AXP">AXP</option>
+            <option value="CVX">CVX</option>
+            <option value="XOM">XOM</option>
+            <option value="TSLA">TSLA</option>
+            <option value="SPLG">SPLG</option>
+        </select>
+
+        <small id="tickerHelp" class="form-text text-muted">We'll never share your query history with anyone
+            else.</small>
+    </div>
+    <div class="form-group">
+        <label for="trade_date">Trade day</label>
+        <input type="date" id="trade_date" name="trade_date" class="form-control" value="2023-07-05"
+               min="2023-06-10" max="2023-7-31">
+    </div>
+    <div style="text-align: right;">
         <button type="submit" id="query" name="query" class="btn btn-primary" style="background-color: #0055cc">
             Query
         </button>
-    </form>
-
+    </div>
+</form>
+<div id="stockScreener" class="table-responsive table-striped" style="margin: 2%">
     {{ table|safe }}
 </div>
 </body>
