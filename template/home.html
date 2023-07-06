@@ -4,8 +4,6 @@
     <title>Stock Screener</title>
     <style>
         table {
-            font-family: Menlo, system-ui;
-            color: #0055cc;
             border-collapse: collapse;
         }
 
@@ -14,10 +12,15 @@
         }
 
         th, td {
-            padding: 5px;
+            padding: 10px;
         }
 
-        th, td {
+        th {
+            font-weight: bold;
+        }
+
+        td {
+            font-family: Menlo, system-ui;
             text-align: right;
         }
 
@@ -25,23 +28,32 @@
             color: #0055cc;
         }
 
-        th {
-            font-weight: bold;
+
+        td:nth-child(5) {
+            color: #ff2f92;
+            text-align: right;
         }
+
+        td:nth-child(6) {
+            color: #0055cc;
+            text-align: right;
+        }
+
     </style>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script>
     </script>
 </head>
 <body>
-
-<form method="POST" action="/query_ticker" style="margin: 2%">
+<h1>Trade time screener</h1>
+<form method="POST" action="/query" style="margin: 2%">
     <div class="form-group">
         <label for="trade_date">Pick a trade day</label>
         <input type="date" id="trade_date" name="trade_date" class="form-control" value="2023-07-05"
                min="2023-06-10" max="2023-12-31" aria-describedby="tickerHelp">
-        <small id="tickerHelp" class="form-text text-muted">We'll never share your query history with anyone
-            else.</small>
+        <small id="tickerHelp" class="form-text text-muted">
+            We'll never share your query history with anyone else.
+        </small>
     </div>
     <div style="text-align: right;">
         <button type="submit" id="query" name="query" class="btn btn-primary" style="background-color: #0055cc">
@@ -49,8 +61,25 @@
         </button>
     </div>
 </form>
-<div class="table-responsive table-striped" style="margin: 2%">
-    {{ table|safe }}
-</div>
+
+
+<table id="stockScreener" class="table-responsive table-striped" style="padding: 2%">
+    <tr>
+        <th style="width: 5%">ticker</th>
+        <th style="width: 5%">DIF</th>
+        <th style="width: 5%">DEM</th>
+        <th style="width: 5%">RSI</th>
+        <th>Buy</th>
+        <th>Sell</th>
+    </tr>
+    {% for row in data %}
+    <tr>
+        {% for col in row %}
+        <td>{{ col }}</td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
+
 </body>
 </html>
