@@ -420,7 +420,7 @@ def print_stock_recent(ticker, principal):
 
 
 tickers = [
-    "2800.hk", "0005.hk", "0700.hk", "2388.hk", "2888.hk",
+    # "2800.hk", "0005.hk", "0700.hk", "2388.hk", "2888.hk",
     "MSFT", "NVDA",
     "TSM", "GOOGL", "META",
     "ORCL", "AMZN", "QCOM", "AMD", "VZ",
@@ -434,7 +434,7 @@ date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
-# print_all_stocks("2023-07-06")
+# print_all_stocks("2023-07-05")
 # print_stock_recent("NVDA", principal)
 
 # Start of web
@@ -455,6 +455,7 @@ def get_ticker():
                 trade_date, ticker, now.strftime("%d/%m/%y %H:%M:%S")))
 
             df = plotOneMinute(ticker, trade_date)
+            print_realtime_ratting(df)
 
             buyTime, sellTime = "", ""
             buyPrice, sellPrice = 0.00, 0.00
@@ -491,3 +492,4 @@ def home():
 
 if __name__ == "__main__":
     app.run(host="localhost", port=8088, debug=None)
+
