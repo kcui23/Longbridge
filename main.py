@@ -430,7 +430,7 @@ def print_stock_recent(ticker, principal):
     print("Total: %10s" % f"{principal:,.2f}")
 
 
-print_all_stocks()
+# print_all_stocks()
 # print_stock_recent("NVDA", principal)
 
 # Start of web
@@ -441,10 +441,9 @@ app = Flask(__name__, template_folder="template")
 def get_ticker():
     if request.method == "POST":
 
-        ticker = request.form["ticker"]
         trade_date = request.form["trade_date"]
 
-        df = plotOneMinute(ticker, trade_date)
+        df = plotOneMinute("NVDA", trade_date)
         df = df.query(
             'BuyIndex == "Buy" | BuyIndex == "PotentialBuy" | BuyIndex == "Sell" | BuyIndex == "PotentialSell"'
         )
