@@ -420,12 +420,13 @@ def print_stock_recent(ticker, principal):
 
 
 tickers = [
-    # "0004.hk", "0005.hk", "2388.hk"
-    "MSFT", "NVDA", "TSM", "GOOGL", "META",
-    # "ORCL", "AMZN", "QCOM", "AMD", "VZ",
-    # "NFLX", "ASML", "JPM", "GS", "MS",
-    # "WFC", "BAC", "V", "MA", "AXP",
-    # "CVX", "XOM", "TSLA", "SPLG"
+    "2800.hk", "0005.hk", "0700.hk", "2388.hk", "2888.hk",
+    "MSFT", "NVDA",
+    "TSM", "GOOGL", "META",
+    "ORCL", "AMZN", "QCOM", "AMD", "VZ",
+    "NFLX", "ASML", "JPM", "GS", "MS",
+    "WFC", "BAC", "V", "MA", "AXP",
+    "CVX", "XOM", "TSLA", "SPLG"
 ]
 
 today = datetime.today()
@@ -445,15 +446,15 @@ def get_ticker():
     if request.method == "POST":
 
         trade_date = request.form["trade_date"]
-        res = np.array([["APPL", 0.00, 0.00, 0.00, "", ""]])
+        res = np.array([["APPL", 0.00, 0.00, 0.00, 0.00, "", ""]])
 
         for ticker in tickers:
 
             now = datetime.now()
-            print("%-5s %s" % (ticker, now.strftime("%d/%m/%y %H:%M:%S")))
+            print("Trade date: %s\tTicker: %-5s\tCalculation date: %s" % (
+                trade_date, ticker, now.strftime("%d/%m/%y %H:%M:%S")))
 
             df = plotOneMinute(ticker, trade_date)
-            print_realtime_ratting(df)
 
             buyTime, sellTime = "", ""
             buyPrice, sellPrice = 0.00, 0.00
@@ -471,6 +472,7 @@ def get_ticker():
                 f"{df['DIF'][len(df) - 1]:,.2f}",
                 f"{df['DEM'][len(df) - 1]:,.2f}",
                 f"{df['RSI'][len(df) - 1]:,.2f}",
+                f"{df['CCI'][len(df) - 1]:,.2f}",
                 f"%s\n%s" % (buyTime, f"{buyPrice:,.2f}"),
                 f"%s\n%s" % (sellTime, f"{sellPrice:,.2f}"),
             ]
