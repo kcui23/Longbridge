@@ -3,8 +3,13 @@
 <head>
     <title>Stock Screener</title>
     <style>
+        form {
+            margin: 2%;
+        }
+
         table {
             border-collapse: collapse;
+            padding: 2%;
         }
 
         table, th, td {
@@ -19,6 +24,10 @@
             font-weight: bold;
         }
 
+        tr {
+            text-align: center;
+        }
+
         td {
             font-family: Menlo, system-ui;
             text-align: right;
@@ -28,58 +37,66 @@
             color: #0055cc;
         }
 
-
-        td:nth-child(5) {
+        td:nth-child(6) {
             color: #ff2f92;
             text-align: right;
         }
 
-        td:nth-child(6) {
+        td:nth-child(7) {
             color: #0055cc;
             text-align: right;
         }
-
     </style>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js">
+        let dateInput = $("#trade_date");
+        dateInput.datepicker("setDate", new Date());
     </script>
 </head>
 <body>
-<h1>Trade time screener</h1>
-<form method="POST" action="/query" style="margin: 2%">
-    <div class="form-group">
-        <label for="trade_date">Pick a trade day</label>
-        <input type="date" id="trade_date" name="trade_date" class="form-control" value="2023-07-05"
-               min="2023-06-10" max="2023-12-31" aria-describedby="tickerHelp">
-        <small id="tickerHelp" class="form-text text-muted">
-            We'll never share your query history with anyone else.
-        </small>
-    </div>
-    <div style="text-align: right;">
-        <button type="submit" id="query" name="query" class="btn btn-primary" style="background-color: #0055cc">
-            Query
-        </button>
-    </div>
-</form>
+<header>
+    <p class="h2">Trade time screener</p>
+</header>
+<main>
+    <form method="POST" action="/query" class="form">
+        <div class="form-group">
+            <label for="trade_date">Pick a trade date</label>
+            <input type="date" id="trade_date" name="trade_date" class="form-control"
+                   value="2023-07-06"
+                   min="2023-06-10" max="2023-12-31" aria-describedby="tickerHelp">
+            <small id="tickerHelp" class="form-text text-muted">
+                We'll never share your query history with anyone else.
+            </small>
+        </div>
+        <div style="text-align: right;">
+            <button type="submit" id="query" name="query" class="btn btn-primary" style="background-color: #0055cc;">
+                Query
+            </button>
+        </div>
+    </form>
 
-
-<table id="stockScreener" class="table-responsive table-striped" style="padding: 2%">
-    <tr>
-        <th style="width: 5%">ticker</th>
-        <th style="width: 5%">DIF</th>
-        <th style="width: 5%">DEM</th>
-        <th style="width: 5%">RSI</th>
-        <th>Buy</th>
-        <th>Sell</th>
-    </tr>
-    {% for row in data %}
-    <tr>
-        {% for col in row %}
-        <td>{{ col }}</td>
+    <table id="stockScreener" class="table-responsive table-striped table">
+        <thead>
+        <tr>
+            <th style="width: 5%">Ticker</th>
+            <th style="width: 5%">DIF</th>
+            <th style="width: 5%">DEM</th>
+            <th style="width: 5%">RSI</th>
+            <th style="width: 5%">CCI</th>
+            <th>Buy</th>
+            <th>Sell</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for row in data %}
+        <tr>
+            {% for col in row %}
+            <td>{{ col }}</td>
+            {% endfor %}
+        </tr>
         {% endfor %}
-    </tr>
-    {% endfor %}
-</table>
-
+        </tbody>
+    </table>
+</main>
 </body>
 </html>
