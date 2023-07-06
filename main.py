@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import mplfinance as mpf
+import numpy as np
 import pandas as pd
 import pandas_market_calendars as mcal
 import yfinance as yf
@@ -372,7 +373,7 @@ def plotOneDay(ticker, start_time, end_time):
 
 def plotOneMinute(ticker, trade_day):
     # get data using download method
-    start_time = pendulum.parse(trade_day + " 00:08:00")
+    start_time = pendulum.parse(trade_day + " 00:00:00")
     end_time = pendulum.parse(trade_day + " 23:59:59")
 
     # convert the index to Eastern Time and remove the timezone
@@ -385,35 +386,23 @@ def plotOneMinute(ticker, trade_day):
     return df
 
 
-tickers = [
-    "MSFT", "NVDA", "TSM", "GOOGL", "META", "ORCL", "AMZN", "QCOM", "AMD", "VZ", "NFLX", "ASML",
-    "JPM", "GS", "MS", "WFC", "BAC", "V", "MA", "AXP",
-    "CVX", "XOM", "TSLA", "SPLG"
-]
-
-today = datetime.today()
-date_string = today.strftime("%Y-%m-%d")
-date_string_today = today.strftime("%Y-%m-%d")
-principal = 10000
-
-
-def print_all_stocks():
+def print_all_stocks(trade_day):
     # For all stocks in the list
-    for x in tickers:
+    for ticker in tickers:
         now = datetime.now()
-        print("\n%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
+        print("\n%-5s %s" % (ticker, now.strftime("%d/%m/%y %H:%M:%S")))
 
-        df = plotOneMinute(x, "2023-07-05")
+        df = plotOneMinute(ticker, trade_day)
         df = print_trade(df, principal)
         print_realtime_ratting(df)
-        print(f"{print_trade_records(df):,.2f}", x)
-        plot_stock_screener(df, x, "1m")
+        print(f"{print_trade_records(df):,.2f}", ticker)
+        plot_stock_screener(df, ticker, "1m")
 
-        df = plotOneDay(x, "2020-01-01", date_string_today)
+        df = plotOneDay(ticker, "2020-01-01", date_string_today)
         df = print_trade(df, principal)
         print_realtime_ratting(df)
-        print(f"{print_trade_records(df):,.2f}", x)
-        plot_stock_screener(df, x, "1d")
+        print(f"{print_trade_records(df):,.2f}", ticker)
+        plot_stock_screener(df, ticker, "1d")
 
 
 def print_stock_recent(ticker, principal):
@@ -430,39 +419,73 @@ def print_stock_recent(ticker, principal):
     print("Total: %10s" % f"{principal:,.2f}")
 
 
-# print_all_stocks()
+tickers = [
+    # "0004.hk", "0005.hk", "2388.hk"
+    "MSFT", "NVDA", "TSM", "GOOGL", "META",
+    # "ORCL", "AMZN", "QCOM", "AMD", "VZ",
+    # "NFLX", "ASML", "JPM", "GS", "MS",
+    # "WFC", "BAC", "V", "MA", "AXP",
+    # "CVX", "XOM", "TSLA", "SPLG"
+]
+
+today = datetime.today()
+date_string = today.strftime("%Y-%m-%d")
+date_string_today = today.strftime("%Y-%m-%d")
+principal = 10000
+
+# print_all_stocks("2023-07-06")
 # print_stock_recent("NVDA", principal)
 
 # Start of web
 app = Flask(__name__, template_folder="template")
 
 
-@app.route("/query_ticker", methods=["GET", "POST"])
+@app.route("/query", methods=["GET", "POST"])
 def get_ticker():
     if request.method == "POST":
 
         trade_date = request.form["trade_date"]
+        res = np.array([["APPL", 0.00, 0.00, 0.00, "", ""]])
 
-        df = plotOneMinute("NVDA", trade_date)
-        df = df.query(
-            'BuyIndex == "Buy" | BuyIndex == "PotentialBuy" | BuyIndex == "Sell" | BuyIndex == "PotentialSell"'
-        )
-        df = df[
-            ["BuyIndex", "High", "Low", "DIF", "DEM", "RSI", "KDJ", "CCI"]
-        ]
+        for ticker in tickers:
 
-        table = df.to_html(float_format="{:,.2f}".format)
-        return render_template("home.html", table=table)
+            now = datetime.now()
+            print("%-5s %s" % (ticker, now.strftime("%d/%m/%y %H:%M:%S")))
+
+            df = plotOneMinute(ticker, trade_date)
+            print_realtime_ratting(df)
+
+            buyTime, sellTime = "", ""
+            buyPrice, sellPrice = 0.00, 0.00
+
+            for i in range(len(df) - 1, -1, -1):
+                if df["BuyIndex"][i] == "PotentialBuy" and buyTime == "":
+                    buyTime = datetime.strftime(df["Datetime"][i], "%d/%m %H:%M")
+                    buyPrice = df["Low"][i]
+                elif df["BuyIndex"][i] == "PotentialSell" and sellTime == "":
+                    sellTime = datetime.strftime(df["Datetime"][i], "%d/%m %H:%M")
+                    sellPrice = df["High"][i]
+
+            current = [
+                ticker,
+                f"{df['DIF'][len(df) - 1]:,.2f}",
+                f"{df['DEM'][len(df) - 1]:,.2f}",
+                f"{df['RSI'][len(df) - 1]:,.2f}",
+                f"%s\n%s" % (buyTime, f"{buyPrice:,.2f}"),
+                f"%s\n%s" % (sellTime, f"{sellPrice:,.2f}"),
+            ]
+
+            res = np.append(res, [current], axis=0)
+
+        return render_template("home.html", data=res[1:])
     else:
         return render_template("home.html")
 
 
 @app.route("/")
 def home():
-    print_all_stocks()
     get_ticker()
 
 
 if __name__ == "__main__":
-    # app.run(host="109.123.236.116", port=8088, debug=None)
     app.run(host="localhost", port=8088, debug=None)
