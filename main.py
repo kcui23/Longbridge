@@ -361,19 +361,16 @@ def plot_stock_screener(df, ticker, type):
     fig.savefig(file_name, transparent=True, bbox_inches="tight")
 
 
-def plotOneDay(ticker, start_time, end_time, principal):
+def plotOneDay(ticker, start_time, end_time):
     # get data using download method
     df = yf.download(ticker, start=start_time, end=end_time, interval="1d", progress=False)
     df = calculate_df(df)
     df = find_signals(df)
-    df = print_trade(df, principal)
-
-    plot_stock_screener(df, ticker, "1d")
 
     return df
 
 
-def plotOneMinute(ticker, trade_day, principal):
+def plotOneMinute(ticker, trade_day):
     # get data using download method
     start_time = pendulum.parse(trade_day + " 00:08:00")
     end_time = pendulum.parse(trade_day + " 23:59:59")
@@ -384,9 +381,6 @@ def plotOneMinute(ticker, trade_day, principal):
 
     df = calculate_df(df)
     df = find_signals(df)
-    df = print_trade(df, principal)
-
-    # plot_stock_screener(df, ticker, "1m")
 
     return df
 
@@ -402,17 +396,55 @@ date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
+
+def print_all_stocks():
+    # For all stocks in the list
+    for x in tickers:
+        now = datetime.now()
+        print("\n%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
+
+        df = plotOneMinute(x, "2023-07-05")
+        df = print_trade(df, principal)
+        print_realtime_ratting(df)
+        print(f"{print_trade_records(df):,.2f}", x)
+        plot_stock_screener(df, x, "1m")
+
+        df = plotOneDay(x, "2020-01-01", date_string_today)
+        df = print_trade(df, principal)
+        print_realtime_ratting(df)
+        print(f"{print_trade_records(df):,.2f}", x)
+        plot_stock_screener(df, x, "1d")
+
+
+def print_stock_recent(ticker, principal):
+    # For a stock in recent 30 days
+    trade_days = generate_US_trade_days("2023-06-06", "2023-07-05")
+
+    for i in trade_days:
+        trade_day = str(i)[:10]
+        df = plotOneMinute(ticker, trade_day)
+        df = print_trade(df, principal)
+        print_realtime_ratting(df)
+        principal = print_trade_records(df)
+
+    print("Total: %10s" % f"{principal:,.2f}")
+
+
+print_all_stocks()
+# print_stock_recent("NVDA", principal)
+
+# Start of web
 app = Flask(__name__, template_folder="template")
 
 
 @app.route("/query_ticker", methods=["GET", "POST"])
 def get_ticker():
     if request.method == "POST":
+
         ticker = request.form["ticker"]
         trade_date = request.form["trade_date"]
 
-        df = plotOneMinute(ticker, trade_date, principal)
-
+        df = plotOneMinute(ticker, trade_date)
         df = df.query(
             'BuyIndex == "Buy" | BuyIndex == "PotentialBuy" | BuyIndex == "Sell" | BuyIndex == "PotentialSell"'
         )
@@ -428,42 +460,10 @@ def get_ticker():
 
 @app.route("/")
 def home():
+    print_all_stocks()
     get_ticker()
 
 
 if __name__ == "__main__":
     # app.run(host="109.123.236.116", port=8088, debug=None)
     app.run(host="localhost", port=8088, debug=None)
-
-# # 1. For single stock
-# df = plotOneMinute("AMD", "2023-06-30", principal)
-# print_realtime_ratting(df)
-# print(f"{print_trade_records(df):,.2f}")
-#
-# df = plotOneDay("AMD", "2020-01-01", date_string_today, principal)
-# print_realtime_ratting(df)
-# print(f"{print_trade_records(df):,.2f}")
-
-# # 2. For all stocks in the list
-# for x in tickers:
-#     now = datetime.now()
-#     print("\n%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
-#
-#     df = plotOneMinute(x, "2023-06-28", principal)
-#     print_realtime_ratting(df)
-#     print(f"{print_trade_records(df):,.2f}", x)
-#
-#     df = plotOneDay(x, "2020-01-01", date_string_today, principal)
-#     print_realtime_ratting(df)
-#     print(f"{print_trade_records(df):,.2f}", x)
-
-# # 3. Day trade in recent 30 days
-# trade_days = generate_US_trade_days("2023-06-06", "2023-07-03")
-#
-# for i in trade_days:
-#     trade_day = str(i)[:10]
-#     df = plotOneMinute("ORCL", trade_day, principal)
-#     print_realtime_ratting(df)
-#     principal = print_trade_records(df)
-#
-# print("Total: %10s" % f"{principal:,.2f}")
