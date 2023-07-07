@@ -39,12 +39,12 @@
             color: #0055cc;
         }
 
-        td:nth-child(6) {
+        td:nth-child(7) {
             color: #ff2f92;
             text-align: right;
         }
 
-        td:nth-child(7) {
+        td:nth-child(8) {
             color: #0055cc;
             text-align: right;
         }
@@ -64,10 +64,10 @@
         <div class="form-group">
             <label for="trade_date">Pick a trade date</label>
             <input type="date" id="trade_date" name="trade_date" class="form-control"
-                   value="2023-07-06"
+                   value="2023-07-07"
                    min="2023-06-10" max="2023-12-31" aria-describedby="tickerHelp">
             <small id="tickerHelp" class="form-text text-muted">
-                We'll never share your query history with anyone else.
+                Please pick a valid US trade date<br>請選擇一個美股交易日
             </small>
         </div>
         <div style="text-align: right;">
@@ -85,6 +85,7 @@
             <th style="width: 5%">DEM</th>
             <th style="width: 5%">RSI</th>
             <th style="width: 5%">CCI</th>
+            <th style="width: 5%; font-weight: bold;">Latest price</th>
             <th>Buy</th>
             <th>Sell</th>
         </tr>
