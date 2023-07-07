@@ -120,7 +120,7 @@ def print_trade(df, principal):
         df.iloc[i, df.columns.get_loc("Cost")] = 0
 
     take_profit_limit = 0.005
-    stop_loss_limit = 0.005
+    stop_loss_limit = 0.01
     df["Balance"] = principal
     df["Position"] = 0
     df["Commission"] = 0.00
@@ -434,7 +434,7 @@ date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
-# print_all_stocks("2023-07-05")
+# print_all_stocks("2023-07-06")
 # print_stock_recent("NVDA", principal)
 
 # Start of web
@@ -442,11 +442,11 @@ app = Flask(__name__, template_folder="template")
 
 
 @app.route("/query", methods=["GET", "POST"])
-def get_ticker():
+def handle_query():
     if request.method == "POST":
 
         trade_date = request.form["trade_date"]
-        res = np.array([["APPL", 0.00, 0.00, 0.00, 0.00, "", ""]])
+        res = np.array([["APPL", 0.00, 0.00, 0.00, 0.00, 0.00, "", ""]])
 
         for ticker in tickers:
 
@@ -474,6 +474,7 @@ def get_ticker():
                 f"{df['DEM'][len(df) - 1]:,.2f}",
                 f"{df['RSI'][len(df) - 1]:,.2f}",
                 f"{df['CCI'][len(df) - 1]:,.2f}",
+                f"{df['Close'][len(df) - 1]:,.2f}",
                 f"%s\n%s" % (buyTime, f"{buyPrice:,.2f}"),
                 f"%s\n%s" % (sellTime, f"{sellPrice:,.2f}"),
             ]
@@ -487,9 +488,8 @@ def get_ticker():
 
 @app.route("/")
 def home():
-    get_ticker()
+    handle_query()
 
 
 if __name__ == "__main__":
     app.run(host="localhost", port=8088, debug=None)
-
