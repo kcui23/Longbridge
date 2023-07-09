@@ -56,15 +56,12 @@ def print_trade_records(df):
 
 
 def generate_US_trade_days(start_date, end_date):
-    # Get NYSE and Nasdaq calendars
     nyse = mcal.get_calendar('NYSE')
     nasdaq = mcal.get_calendar('NASDAQ')
 
-    # Get NYSE and Nasdaq schedules
     nyse_schedule = nyse.schedule(start_date=start_date, end_date=end_date)
     nasdaq_schedule = nasdaq.schedule(start_date=start_date, end_date=end_date)
 
-    # Get the intersection of NYSE and Nasdaq schedules
     trade_days = nyse_schedule.index.intersection(nasdaq_schedule.index)
 
     return trade_days
@@ -259,6 +256,7 @@ def plot_MACD(df, ax, date_format):
     [ax.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
     ax.xaxis.set_major_formatter(date_format)
     ax.tick_params(axis="x", labelsize=7, labelcolor="#0055cc", top=False)
+
     ax.plot(df["Datetime"], df["DIF"], color="#0055cc", label="DIF", linewidth=1)
     ax.plot(df["Datetime"], df["DEM"], color="#ffa500", label="DEM", linewidth=1)
     ax.bar(df["Datetime"], df["Histogram"], width=[0.0005 if len(df) <= 390 else 2000 / len(df)],
@@ -472,7 +470,7 @@ def handle_query():
     if request.method == "POST":
 
         trade_date = request.form["trade_date"]
-        res = np.array([["APPL", 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, "", ""]])
+        res = np.array([["APPL", 0.00, 0.00, 0.00, "", "", "", ""]])
 
         for ticker in tickers:
 
@@ -496,14 +494,13 @@ def handle_query():
 
             current = [
                 ticker,
-                f"{df['DIF'][len(df) - 1]:,.2f}",
-                f"{df['DEM'][len(df) - 1]:,.2f}",
                 f"{df['CRSI'][len(df) - 1]:,.2f}",
                 f"{df['KDJ'][len(df) - 1]:,.2f}",
-                f"{df['CCI'][len(df) - 1]:,.2f}",
                 f"{df['Close'][len(df) - 1]:,.2f}",
                 f"%s\n%s" % (buyTime, f"{buyPrice:,.2f}"),
                 f"%s\n%s" % (sellTime, f"{sellPrice:,.2f}"),
+                "",
+                "",
             ]
 
             res = np.append(res, [current], axis=0)
@@ -520,3 +517,5 @@ def home():
 
 if __name__ == "__main__":
     app.run(host="localhost", port=8088, debug=None)
+    # app.run(host="194.233.83.43", port=8088, debug=None)
+    # app.run(host="109.123.236.116", port=8088, debug=None)
