@@ -232,7 +232,8 @@ def plot_candlestick(df, ax, ticker):
                                volume='inherit')
     s = mpf.make_mpf_style(base_mpf_style='starsandstripes', rc={'font.size': 6},
                            marketcolors=mc)
-    mpf.plot(df, type="candle", ax=ax, style=s, warn_too_much_data=10000000)
+    wtmd = dict(warn_too_much_data=len(df) + 1)
+    mpf.plot(df, type="candle", ax=ax, style=s, **wtmd)
     ax.set_ylabel("%s @ %s" % (ticker, str(df["Datetime"][len(df) - 1])[:10]))
     ax.yaxis.set_label_position("right")
     [ax.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
@@ -445,7 +446,7 @@ def print_stock_recent(ticker, start_date, end_date, principal):
 
 
 tickers = [
-    # "2800.hk", "0005.hk", "0700.hk", "2388.hk", "2888.hk",
+    "2800.hk", "0005.hk", "0700.hk", "2388.hk", "2888.hk",
     "MSFT", "NVDA", "TSM", "GOOGL", "META",
     "ORCL", "AMZN", "QCOM", "AMD", "VZ",
     "NFLX", "ASML", "JPM", "GS", "MS",
@@ -458,8 +459,8 @@ date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
-# print_all_stocks("2023-06-28", principal)
-# print_stock_recent("AMD", "2020-01-01", "2023-07-06",principal)
+print_all_stocks("2023-07-07", principal)
+# print_stock_recent("AMD", "2020-01-01", "2023-07-06", principal)
 
 # Start of web
 app = Flask(__name__, template_folder="template")
