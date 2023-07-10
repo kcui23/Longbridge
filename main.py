@@ -1,7 +1,4 @@
-import io
-import pathlib
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 import mplfinance as mpf
 import numpy as np
 import pandas as pd
@@ -9,8 +6,7 @@ import pandas_market_calendars as mcal
 import yfinance as yf
 import ta
 import pendulum
-from datetime import datetime
-from scipy.interpolate import make_interp_spline
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request
 
 
@@ -189,10 +185,8 @@ def print_trade(df, principal):
 
 
 def calculate_df(df):
-    # Convert date column to datetime format
     df["Datetime"] = pd.to_datetime(df.index)
 
-    # Calculate MACD, RSI, KDJ, CCI using ta library
     df["DIF"] = ta.trend.MACD(df["Close"], window_slow=26, window_fast=12).macd()
     df["DEM"] = df["DIF"].ewm(span=9).mean()
     df["Histogram"] = df["DIF"] - df["DEM"].ewm(span=9).mean()
@@ -220,10 +214,9 @@ def plot_stock_screener(df, ticker):
         for i in range(len(df)):
             current = df["BuyIndex"][i]
             if current == "Buy" or current == "PotentialBuy":
-                ax.axvline(x=i, ymin=0, ymax=10, c="#ff2f92", linewidth=0.5, alpha=0.5, zorder=0, clip_on=False)
-
+                ax.axvline(x=i, ymin=0, ymax=10, c="#ff2f92", linewidth=0.5, alpha=0.35, zorder=0, clip_on=False)
             elif current == "Sell" or current == "PotentialSell":
-                ax.axvline(x=i, ymin=0, ymax=10, c="#0055cc", linewidth=0.5, alpha=0.5, zorder=0, clip_on=False)
+                ax.axvline(x=i, ymin=0, ymax=10, c="#0055cc", linewidth=0.5, alpha=0.35, zorder=0, clip_on=False)
 
     def add_buy_and_sell(ax):
 
@@ -263,7 +256,7 @@ def plot_stock_screener(df, ticker):
                     bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.25", facecolor="#0055cc",
                               edgecolor="none", alpha=alpha_value))
 
-    fig = plt.figure(figsize=(20, 9), dpi=300)
+    fig = plt.figure(figsize=(16, 9), dpi=300)
 
     ax1 = plt.subplot2grid((9, 1), (0, 0), rowspan=4)
     ax2 = plt.subplot2grid((9, 1), (4, 0), rowspan=2, sharex=ax1)
@@ -295,20 +288,22 @@ def plot_stock_screener(df, ticker):
     plots = [macd_DIF, macd_DEM, macd_Histogram, rsi, crsi, kdj_k, kdj_d, kdj_j]
 
     file_name = ticker
-    if str(df["Datetime"][0])[:10] == str(df["Datetime"][len(df) - 1])[:10]:
-        file_name = "1m" + " " + file_name + " " + str(df["Datetime"][0])[:10] + ".png"
+    if str(df["Datetime"][0]).endswith("00:00:00"):
+        file_name = "1d" + " " + file_name + " " + str(df["Datetime"][0])[:10]
     else:
-        file_name = "1d" + " " + file_name + " " + str(df["Datetime"][0])[:10] + " " + str(
-            df["Datetime"][len(df) - 1])[
-                                                                                       :10] + ".png"
+        file_name = "1m" + " " + file_name + " " + str(df["Datetime"][0])[:10] + " " + str(
+            df["Datetime"][len(df) - 1])[:10]
 
     wtmd = dict(warn_too_much_data=len(df) + 1)
     mpf.plot(
         df, type="candle", ax=ax1, style=s, addplot=plots,
-        volume=ax5, ylabel="", ylabel_lower="",
+        volume=ax5,
+        ylabel=file_name,
+        ylabel_lower="",
         tight_layout=True,
         datetime_format="%y/%m/%d\n%H:%M",
-        xrotation=0, returnfig=False,
+        xrotation=0,
+        returnfig=False,
         **wtmd
     )
 
@@ -348,40 +343,28 @@ def plot_stock_screener(df, ticker):
     ax5.set_yticks([])
     ax5.tick_params(bottom=False)
 
-    fig.savefig(file_name, transparent=False, bbox_inches="tight")
+    plt.rcParams['font.family'] = 'Menlo'
+    file_name += ".png"
+    fig.savefig(file_name, transparent=True, bbox_inches="tight")
+
+
+def plotOneMinute(ticker, trade_date):
+    current_date = datetime.now()
+    start_date = (current_date - timedelta(days=7)).strftime("%Y-%m-%d")
+    start_time = pendulum.parse(start_date + " 00:00:00")
+    end_time = pendulum.parse(trade_date + " 23:59:59")
+
+    df = yf.download(ticker, start=start_time, end=end_time, interval="1m", progress=False)
+    df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
+
+    df = calculate_df(df)
+    df = find_signals(df)
+
+    return df
 
 
 def plotOneDay(ticker, start_time, end_time):
-    # get data using download method
     df = yf.download(ticker, start=start_time, end=end_time, interval="1d", progress=False)
-    df = calculate_df(df)
-    df = find_signals(df)
-
-    return df
-
-
-def plotOneMinute(ticker, trade_day):
-    # get data using download method
-    start_time = pendulum.parse(trade_day + " 00:00:00")
-    end_time = pendulum.parse(trade_day + " 23:59:59")
-
-    # convert the index to Eastern Time and remove the timezone
-    df = yf.download(ticker, start=start_time, end=end_time, interval="1m", progress=False)
-    df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
-
-    df = calculate_df(df)
-    df = find_signals(df)
-
-    return df
-
-
-def plotOneMinuteLong(ticker, start_date, end_date):
-    start_time = pendulum.parse(start_date + " 00:00:00")
-    end_time = pendulum.parse(end_date + " 23:59:59")
-
-    df = yf.download(ticker, start=start_time, end=end_time, interval="1m", progress=False)
-    df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
-
     df = calculate_df(df)
     df = find_signals(df)
 
@@ -395,12 +378,6 @@ def print_all_stocks(trade_day, principal):
         print("\n%-5s %s" % (ticker, now.strftime("%d/%m/%y %H:%M:%S")))
 
         df = plotOneMinute(ticker, trade_day)
-        df = print_trade(df, principal)
-        print_realtime_ratting(df)
-        print(f"{print_trade_records(df):,.2f}", ticker)
-        plot_stock_screener(df, ticker)
-
-        df = plotOneMinuteLong(ticker, "2023-07-03", "2023-07-07")
         df = print_trade(df, principal)
         print_realtime_ratting(df)
         print(f"{print_trade_records(df):,.2f}", ticker)
@@ -441,13 +418,18 @@ date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
-# df = plotOneMinuteLong("MSFT", "2023-07-01", "2023-07-07")
+# df = plotOneMinute("0700.hk", "2023-07-09")
+# df = print_trade(df, principal)
+# plot_stock_screener(df, "0700.hk")
+#
+# df = plotOneMinute("MSFT", "2023-07-07")
 # df = print_trade(df, principal)
 # plot_stock_screener(df, "MSFT")
 #
-# df = plotOneMinute("0700.hk", "2023-07-10")
+# df = plotOneDay("MSFT", "2020-01-01", "2023-07-10")
 # df = print_trade(df, principal)
-# plot_stock_screener(df, "0700.hk")
+# print_trade_records(df)
+# plot_stock_screener(df, "MSFT")
 
 # 1. All test
 print_all_stocks("2023-07-07", principal)
@@ -487,7 +469,7 @@ def handle_query():
                     sellTime = datetime.strftime(df["Datetime"][i], "%d/%m %H:%M")
                     sellPrice = df["High"][i]
 
-            current = [
+            content = [
                 ticker,
                 f"{df['CRSI'][len(df) - 1]:,.2f}",
                 f"{df['KDJ'][len(df) - 1]:,.2f}",
@@ -498,7 +480,7 @@ def handle_query():
                 "",
             ]
 
-            res = np.append(res, [current], axis=0)
+            res = np.append(res, [content], axis=0)
 
         return render_template("home.html", data=res[1:])
     else:
