@@ -384,7 +384,7 @@ def plot_stock_screener(df, ticker):
 
 def plotOneMinute(ticker, trade_date):
     current_date = datetime.now()
-    start_date = (current_date - timedelta(days=1)).strftime("%Y-%m-%d")
+    start_date = (current_date - timedelta(days=3)).strftime("%Y-%m-%d")
     start_time = pendulum.parse(start_date + " 00:00:00")
     end_time = pendulum.parse(trade_date + " 23:59:59")
 
@@ -399,7 +399,7 @@ def plotOneMinute(ticker, trade_date):
 
 def plotFifteenMinute(ticker, trade_date):
     current_date = datetime.now()
-    start_date = (current_date - timedelta(days=7)).strftime("%Y-%m-%d")
+    start_date = (current_date - timedelta(days=59)).strftime("%Y-%m-%d")
     start_time = pendulum.parse(start_date + " 00:00:00")
     end_time = pendulum.parse(trade_date + " 23:59:59")
 
@@ -415,7 +415,7 @@ def plotFifteenMinute(ticker, trade_date):
 
 def plotThirtyMinute(ticker, trade_date):
     current_date = datetime.now()
-    start_date = (current_date - timedelta(days=30)).strftime("%Y-%m-%d")
+    start_date = (current_date - timedelta(days=59)).strftime("%Y-%m-%d")
     start_time = pendulum.parse(start_date + " 00:00:00")
     end_time = pendulum.parse(trade_date + " 23:59:59")
 
@@ -431,7 +431,7 @@ def plotThirtyMinute(ticker, trade_date):
 
 def plotSixtyMinute(ticker, trade_date):
     current_date = datetime.now()
-    start_date = (current_date - timedelta(days=60)).strftime("%Y-%m-%d")
+    start_date = (current_date - timedelta(days=180)).strftime("%Y-%m-%d")
     start_time = pendulum.parse(start_date + " 00:00:00")
     end_time = pendulum.parse(trade_date + " 23:59:59")
 
@@ -447,7 +447,7 @@ def plotSixtyMinute(ticker, trade_date):
 
 def plotOneDay(ticker, trade_date):
     current_date = datetime.now()
-    start_date = (current_date - timedelta(days=100)).strftime("%Y-%m-%d")
+    start_date = (current_date - timedelta(days=500)).strftime("%Y-%m-%d")
 
     df = yf.download(ticker, start=start_date, end=trade_date, interval="1d", progress=False)
     df = calculate_df(df)
@@ -464,31 +464,31 @@ def print_all_stocks(trade_day, principal):
 
         df = plotOneMinute(ticker, trade_day)
         df = paper_trade(df, principal)
-        # print_realtime_ratting(df)
-        # print(f"{print_trade_records(df):,.2f}", ticker)
+        print_realtime_ratting(df)
+        print(f"{print_trade_records(df):,.2f}", ticker)
         plot_stock_screener(df, ticker)
 
         df = plotFifteenMinute(ticker, trade_day)
         df = paper_trade(df, principal)
-        # print_realtime_ratting(df)
-        # print(f"{print_trade_records(df):,.2f}", ticker)
+        print_realtime_ratting(df)
+        print(f"{print_trade_records(df):,.2f}", ticker)
         plot_stock_screener(df, ticker)
 
         df = plotThirtyMinute(ticker, trade_day)
         df = paper_trade(df, principal)
-        # print_realtime_ratting(df)
-        # print(f"{print_trade_records(df):,.2f}", ticker)
+        print_realtime_ratting(df)
+        print(f"{print_trade_records(df):,.2f}", ticker)
         plot_stock_screener(df, ticker)
 
         df = plotSixtyMinute(ticker, trade_day)
         df = paper_trade(df, principal)
-        # print_realtime_ratting(df)
-        # print(f"{print_trade_records(df):,.2f}", ticker)
+        print_realtime_ratting(df)
+        print(f"{print_trade_records(df):,.2f}", ticker)
         plot_stock_screener(df, ticker)
 
         df = plotOneDay(ticker, trade_day)
         df = paper_trade(df, principal)
-        # print_realtime_ratting(df)
+        print_realtime_ratting(df)
         print(f"{print_trade_records(df):,.2f}", ticker)
         plot_stock_screener(df, ticker)
 
@@ -510,7 +510,6 @@ date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
-
 # df = plotOneMinute("0700.hk", "2023-07-10")
 # df = paper_trade(df, principal)
 # print_trade_records(df)
@@ -526,8 +525,9 @@ principal = 10000
 # print_trade_records(df)
 # plot_stock_screener(df, "MSFT")
 
-# # 1. All test
-# print_all_stocks("2023-07-10", principal)
+# 1. All test
+print_all_stocks("2023-07-10", principal)
+
 
 def prepare_web_content(trade_date):
     def find_timing(df):
