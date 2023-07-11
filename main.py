@@ -287,12 +287,12 @@ def plot_stock_screener(df, ticker):
 
     plots = [macd_DIF, macd_DEM, macd_Histogram, rsi, crsi, kdj_k, kdj_d, kdj_j]
 
-    file_name = ticker
+    file_name = ticker + " " + str(df["Datetime"][0])[:10] + " " + str(
+        df["Datetime"][len(df) - 1])[:10]
     if str(df["Datetime"][0]).endswith("00:00:00"):
-        file_name = "1d" + " " + file_name + " " + str(df["Datetime"][0])[:10]
+        file_name = "1d" + " " + file_name
     else:
-        file_name = "1m" + " " + file_name + " " + str(df["Datetime"][0])[:10] + " " + str(
-            df["Datetime"][len(df) - 1])[:10]
+        file_name = "1m" + " " + file_name
 
     wtmd = dict(warn_too_much_data=len(df) + 1)
     mpf.plot(
@@ -432,7 +432,7 @@ principal = 10000
 # plot_stock_screener(df, "MSFT")
 
 # 1. All test
-print_all_stocks("2023-07-07", principal)
+print_all_stocks("2023-07-10", principal)
 
 # # 2.
 # for ticker in tickers:
