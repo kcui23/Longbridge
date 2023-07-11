@@ -384,7 +384,7 @@ def plot_stock_screener(df, ticker):
 
 def plotOneMinute(ticker, trade_date):
     current_date = datetime.now()
-    start_date = (current_date - timedelta(days=7)).strftime("%Y-%m-%d")
+    start_date = (current_date - timedelta(days=1)).strftime("%Y-%m-%d")
     start_time = pendulum.parse(start_date + " 00:00:00")
     end_time = pendulum.parse(trade_date + " 23:59:59")
 
@@ -399,7 +399,7 @@ def plotOneMinute(ticker, trade_date):
 
 def plotFifteenMinute(ticker, trade_date):
     current_date = datetime.now()
-    start_date = (current_date - timedelta(days=59)).strftime("%Y-%m-%d")
+    start_date = (current_date - timedelta(days=7)).strftime("%Y-%m-%d")
     start_time = pendulum.parse(start_date + " 00:00:00")
     end_time = pendulum.parse(trade_date + " 23:59:59")
 
@@ -413,9 +413,9 @@ def plotFifteenMinute(ticker, trade_date):
     return df
 
 
-def PlotThirtyMinute(ticker, trade_date):
+def plotThirtyMinute(ticker, trade_date):
     current_date = datetime.now()
-    start_date = (current_date - timedelta(days=59)).strftime("%Y-%m-%d")
+    start_date = (current_date - timedelta(days=30)).strftime("%Y-%m-%d")
     start_time = pendulum.parse(start_date + " 00:00:00")
     end_time = pendulum.parse(trade_date + " 23:59:59")
 
@@ -431,7 +431,7 @@ def PlotThirtyMinute(ticker, trade_date):
 
 def plotSixtyMinute(ticker, trade_date):
     current_date = datetime.now()
-    start_date = (current_date - timedelta(days=180)).strftime("%Y-%m-%d")
+    start_date = (current_date - timedelta(days=60)).strftime("%Y-%m-%d")
     start_time = pendulum.parse(start_date + " 00:00:00")
     end_time = pendulum.parse(trade_date + " 23:59:59")
 
@@ -447,7 +447,7 @@ def plotSixtyMinute(ticker, trade_date):
 
 def plotOneDay(ticker, trade_date):
     current_date = datetime.now()
-    start_date = (current_date - timedelta(days=365)).strftime("%Y-%m-%d")
+    start_date = (current_date - timedelta(days=100)).strftime("%Y-%m-%d")
 
     df = yf.download(ticker, start=start_date, end=trade_date, interval="1d", progress=False)
     df = calculate_df(df)
@@ -464,33 +464,33 @@ def print_all_stocks(trade_day, principal):
 
         df = plotOneMinute(ticker, trade_day)
         df = paper_trade(df, principal)
-        print_realtime_ratting(df)
-        print(f"{print_trade_records(df):,.2f}", ticker)
+        # print_realtime_ratting(df)
+        # print(f"{print_trade_records(df):,.2f}", ticker)
         plot_stock_screener(df, ticker)
 
         df = plotFifteenMinute(ticker, trade_day)
         df = paper_trade(df, principal)
-        print_realtime_ratting(df)
-        print(f"{print_trade_records(df):,.2f}", ticker)
+        # print_realtime_ratting(df)
+        # print(f"{print_trade_records(df):,.2f}", ticker)
         plot_stock_screener(df, ticker)
 
-        df = PlotThirtyMinute(ticker, trade_day)
+        df = plotThirtyMinute(ticker, trade_day)
         df = paper_trade(df, principal)
-        print_realtime_ratting(df)
-        print(f"{print_trade_records(df):,.2f}", ticker)
+        # print_realtime_ratting(df)
+        # print(f"{print_trade_records(df):,.2f}", ticker)
         plot_stock_screener(df, ticker)
 
         df = plotSixtyMinute(ticker, trade_day)
         df = paper_trade(df, principal)
-        print_realtime_ratting(df)
-        print(f"{print_trade_records(df):,.2f}", ticker)
+        # print_realtime_ratting(df)
+        # print(f"{print_trade_records(df):,.2f}", ticker)
         plot_stock_screener(df, ticker)
 
         df = plotOneDay(ticker, trade_day)
         df = paper_trade(df, principal)
         # print_realtime_ratting(df)
-        # print(f"{print_trade_records(df):,.2f}", ticker)
-        # plot_stock_screener(df, ticker)
+        print(f"{print_trade_records(df):,.2f}", ticker)
+        plot_stock_screener(df, ticker)
 
 
 tickers = [
@@ -510,6 +510,7 @@ date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
+
 # df = plotOneMinute("0700.hk", "2023-07-10")
 # df = paper_trade(df, principal)
 # print_trade_records(df)
@@ -525,8 +526,52 @@ principal = 10000
 # print_trade_records(df)
 # plot_stock_screener(df, "MSFT")
 
-# 1. All test
-print_all_stocks("2023-07-10", principal)
+# # 1. All test
+# print_all_stocks("2023-07-10", principal)
+
+def prepare_web_content(trade_date):
+    def find_timing(df):
+        buyTime, sellTime = "", ""
+        buyPrice, sellPrice = 0.00, 0.00
+        for i in range(len(df) - 1, -1, -1):
+            if df["BuyIndex"][i] == "PotentialBuy" and buyTime == "":
+                buyTime = datetime.strftime(df["Datetime"][i], "%d/%m %H:%M")
+                buyPrice = df["Low"][i]
+            elif df["BuyIndex"][i] == "PotentialSell" and sellTime == "":
+                sellTime = datetime.strftime(df["Datetime"][i], "%d/%m %H:%M")
+                sellPrice = df["High"][i]
+
+        return f"%s\n%s" % (buyTime, f"{buyPrice:,.2f}"), f"%s\n%s" % (sellTime, f"{sellPrice:,.2f}")
+
+    res = np.array([["APPL", 0.00, 0.00, "", "", "", "", "", "", "", "", "", ""]])
+
+    for ticker in tickers:
+        now = datetime.now()
+        print("Trade date: %s\tTicker: %-5s\tCalculation date: %s" % (
+            trade_date, ticker, now.strftime("%d/%m/%y %H:%M:%S")))
+
+        df = plotOneMinute(ticker, trade_date)
+        current = [
+            ticker, f"{df['CRSI'][len(df) - 1]:,.2f}", f"{df['Close'][len(df) - 1]:,.2f}",
+            "", "", "", "", "", "", "", "", "", ""]
+        current[3], current[4] = find_timing(df)
+
+        df = plotFifteenMinute(ticker, trade_date)
+        current[5], current[6] = find_timing(df)
+
+        df = plotThirtyMinute(ticker, trade_date)
+        current[7], current[8] = find_timing(df)
+
+        df = plotSixtyMinute(ticker, trade_date)
+        current[9], current[10] = find_timing(df)
+
+        df = plotOneDay(ticker, trade_date)
+        current[11], current[12] = find_timing(df)
+
+        res = np.append(res, [current], axis=0)
+
+    return res[1:]
+
 
 # Start of web
 app = Flask(__name__, template_folder="template")
@@ -535,44 +580,8 @@ app = Flask(__name__, template_folder="template")
 @app.route("/query", methods=["GET", "POST"])
 def handle_query():
     if request.method == "POST":
-
         trade_date = request.form["trade_date"]
-        res = np.array([["APPL", 0.00, 0.00, 0.00, "", "", "", ""]])
-
-        for ticker in tickers:
-
-            now = datetime.now()
-            print("Trade date: %s\tTicker: %-5s\tCalculation date: %s" % (
-                trade_date, ticker, now.strftime("%d/%m/%y %H:%M:%S")))
-
-            df = plotOneMinute(ticker, trade_date)
-            # print_realtime_ratting(df)
-
-            buyTime, sellTime = "", ""
-            buyPrice, sellPrice = 0.00, 0.00
-
-            for i in range(len(df) - 1, -1, -1):
-                if df["BuyIndex"][i] == "PotentialBuy" and buyTime == "":
-                    buyTime = datetime.strftime(df["Datetime"][i], "%d/%m %H:%M")
-                    buyPrice = df["Low"][i]
-                elif df["BuyIndex"][i] == "PotentialSell" and sellTime == "":
-                    sellTime = datetime.strftime(df["Datetime"][i], "%d/%m %H:%M")
-                    sellPrice = df["High"][i]
-
-            content = [
-                ticker,
-                f"{df['CRSI'][len(df) - 1]:,.2f}",
-                f"{df['KDJ'][len(df) - 1]:,.2f}",
-                f"{df['Close'][len(df) - 1]:,.2f}",
-                f"%s\n%s" % (buyTime, f"{buyPrice:,.2f}"),
-                f"%s\n%s" % (sellTime, f"{sellPrice:,.2f}"),
-                "",
-                "",
-            ]
-
-            res = np.append(res, [content], axis=0)
-
-        return render_template("home.html", data=res[1:])
+        return render_template("home.html", data=prepare_web_content(trade_date))
     else:
         return render_template("home.html")
 
