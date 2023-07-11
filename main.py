@@ -53,6 +53,16 @@ def print_trade_records(df):
     return df["TotalAssets"][len(df) - 1]
 
 
+def distinguish_interval(df):
+    res = {60: "1m", 900: "15m", 1800: "30m", 3600: "60m", 86400: "1d"}
+
+    datetime_first = datetime.strptime(str(df["Datetime"][0])[:19], "%Y-%m-%d %H:%M:%S")
+    datetime_second = datetime.strptime(str(df["Datetime"][1])[:19], "%Y-%m-%d %H:%M:%S")
+    difference = int((datetime_second - datetime_first).total_seconds())
+
+    return res.get(difference, None)
+
+
 def generate_US_trade_days(start_date, end_date):
     nyse = mcal.get_calendar('NYSE')
     nasdaq = mcal.get_calendar('NASDAQ')
@@ -129,7 +139,7 @@ def paper_trade(df, principal):
         df.iloc[i, df.columns.get_loc("Commission")] = commission
         df.iloc[i, df.columns.get_loc("Balance")] = balance
         df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
-        df.iloc[i, df.columns.get_loc("Cost")] = current_price + commission / position
+        df.iloc[i, df.columns.get_loc("Cost")] = current_price + commission / max(position, 1)
 
     def sell(i):
         direction = "Sell"
@@ -350,11 +360,8 @@ def plot_stock_screener(df, ticker):
 
     plots = [macd_DIF, macd_DEM, macd_Histogram, rsi, crsi, kdj_k, kdj_d, kdj_j]
 
-    file_name = ticker + " " + str(df["Datetime"][0])[:10] + " " + str(df["Datetime"][len(df) - 1])[:10]
-    if str(df["Datetime"][0]).endswith("00:00:00"):
-        file_name = "1d" + " " + file_name
-    else:
-        file_name = "1m" + " " + file_name
+    file_name = distinguish_interval(df) + " " + ticker + " " + str(df["Datetime"][0])[:10] + " " + str(
+        df["Datetime"][len(df) - 1])[:10]
 
     mpf.plot(
         df, type="candle", ax=ax1, style=s, addplot=plots,
@@ -390,8 +397,59 @@ def plotOneMinute(ticker, trade_date):
     return df
 
 
-def plotOneDay(ticker, start_time, end_time):
-    df = yf.download(ticker, start=start_time, end=end_time, interval="1d", progress=False)
+def plotFifteenMinute(ticker, trade_date):
+    current_date = datetime.now()
+    start_date = (current_date - timedelta(days=59)).strftime("%Y-%m-%d")
+    start_time = pendulum.parse(start_date + " 00:00:00")
+    end_time = pendulum.parse(trade_date + " 23:59:59")
+
+    df = yf.download(ticker, start=start_time, end=end_time, interval="15m", progress=False)
+    df.index = df.index.tz_localize("UTC")
+    df.index = df.index.tz_convert("US/Eastern")
+
+    df = calculate_df(df)
+    df = find_signals(df)
+
+    return df
+
+
+def PlotThirtyMinute(ticker, trade_date):
+    current_date = datetime.now()
+    start_date = (current_date - timedelta(days=59)).strftime("%Y-%m-%d")
+    start_time = pendulum.parse(start_date + " 00:00:00")
+    end_time = pendulum.parse(trade_date + " 23:59:59")
+
+    df = yf.download(ticker, start=start_time, end=end_time, interval="30m", progress=False)
+    df.index = df.index.tz_localize("UTC")
+    df.index = df.index.tz_convert("US/Eastern")
+
+    df = calculate_df(df)
+    df = find_signals(df)
+
+    return df
+
+
+def plotSixtyMinute(ticker, trade_date):
+    current_date = datetime.now()
+    start_date = (current_date - timedelta(days=180)).strftime("%Y-%m-%d")
+    start_time = pendulum.parse(start_date + " 00:00:00")
+    end_time = pendulum.parse(trade_date + " 23:59:59")
+
+    df = yf.download(ticker, start=start_time, end=end_time, interval="60m", progress=False)
+    df.index = df.index.tz_localize("UTC")
+    df.index = df.index.tz_convert("US/Eastern")
+
+    df = calculate_df(df)
+    df = find_signals(df)
+
+    return df
+
+
+def plotOneDay(ticker, trade_date):
+    current_date = datetime.now()
+    start_date = (current_date - timedelta(days=365)).strftime("%Y-%m-%d")
+
+    df = yf.download(ticker, start=start_date, end=trade_date, interval="1d", progress=False)
     df = calculate_df(df)
     df = find_signals(df)
 
@@ -410,34 +468,41 @@ def print_all_stocks(trade_day, principal):
         print(f"{print_trade_records(df):,.2f}", ticker)
         plot_stock_screener(df, ticker)
 
-        df = plotOneDay(ticker, "2020-01-01", date_string_today)
+        df = plotFifteenMinute(ticker, trade_day)
         df = paper_trade(df, principal)
         print_realtime_ratting(df)
         print(f"{print_trade_records(df):,.2f}", ticker)
         plot_stock_screener(df, ticker)
 
-
-def print_stock_recent(ticker, start_date, end_date, principal):
-    # For a stock in recent 30 days
-    trade_days = generate_US_trade_days(start_date, end_date)
-
-    for i in trade_days:
-        trade_day = str(i)[:10]
-        df = plotOneMinute(ticker, trade_day)
+        df = PlotThirtyMinute(ticker, trade_day)
         df = paper_trade(df, principal)
         print_realtime_ratting(df)
-        principal = print_trade_records(df)
+        print(f"{print_trade_records(df):,.2f}", ticker)
+        plot_stock_screener(df, ticker)
 
-    print("\nTotal: %10s" % f"{principal:,.2f}")
+        df = plotSixtyMinute(ticker, trade_day)
+        df = paper_trade(df, principal)
+        print_realtime_ratting(df)
+        print(f"{print_trade_records(df):,.2f}", ticker)
+        plot_stock_screener(df, ticker)
+
+        df = plotOneDay(ticker, trade_day)
+        df = paper_trade(df, principal)
+        # print_realtime_ratting(df)
+        # print(f"{print_trade_records(df):,.2f}", ticker)
+        # plot_stock_screener(df, ticker)
 
 
 tickers = [
     # "2800.hk", "0005.hk", "0700.hk", "2388.hk", "2888.hk",
-    "MSFT", "NVDA", "TSM", "GOOGL", "META",
-    "ORCL", "AMZN", "QCOM", "AMD", "VZ",
-    "NFLX", "ASML", "JPM", "GS", "MS",
-    "WFC", "BAC", "V", "MA", "AXP",
-    "CVX", "XOM", "TSLA", "SPLG"
+    "MSFT", "NVDA", "GOOGL", "TSM", "AMZN",
+    "META", "ORCL", "AMD", "ADBE", "QCOM",
+    "NFLX", "ASML", "AVGO", "VZ", "GS",
+    "JPM", "MS", "WFC", "BAC", "C",
+    "V", "MA", "AXP", "XOM", "CVX",
+    "TSLA", "MCD", "KO", "PEP", "PG",
+    "ABBV", "MRK", "LLY", "UNH", "PFE",
+    "JNJ", "SPLG"
 ]
 
 today = datetime.today()
@@ -445,27 +510,23 @@ date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
-df = plotOneMinute("0700.hk", "2023-07-10")
-df = paper_trade(df, principal)
-print_trade_records(df)
-plot_stock_screener(df, "0700.hk")
+# df = plotOneMinute("0700.hk", "2023-07-10")
+# df = paper_trade(df, principal)
+# print_trade_records(df)
+# plot_stock_screener(df, "0700.hk")
+#
+# df = plotOneMinute("MSFT", "2023-07-10")
+# df = paper_trade(df, principal)
+# print_trade_records(df)
+# plot_stock_screener(df, "MSFT")
+#
+# df = plotOneDay("MSFT", "2020-01-01", "2023-07-11")
+# df = paper_trade(df, principal)
+# print_trade_records(df)
+# plot_stock_screener(df, "MSFT")
 
-df = plotOneMinute("MSFT", "2023-07-10")
-df = paper_trade(df, principal)
-print_trade_records(df)
-plot_stock_screener(df, "MSFT")
-
-df = plotOneDay("MSFT", "2020-01-01", "2023-07-11")
-df = paper_trade(df, principal)
-print_trade_records(df)
-plot_stock_screener(df, "MSFT")
-
-# # 1. All test
-# print_all_stocks("2023-07-10", principal)
-
-# # 2.
-# for ticker in tickers:
-#     print_stock_recent(ticker, "2023-06-08", "2023-07-07", principal)
+# 1. All test
+print_all_stocks("2023-07-10", principal)
 
 # Start of web
 app = Flask(__name__, template_folder="template")
