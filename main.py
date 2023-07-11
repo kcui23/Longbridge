@@ -116,7 +116,7 @@ def find_signals(df):
     return df
 
 
-def print_trade(df, principal):
+def paper_trade(df, principal):
     def buy(i):
         direction = "Buy"
         balance = df["Balance"][i]
@@ -203,20 +203,57 @@ def calculate_df(df):
         df[["High", "Low"]].mean(axis=1).rolling(34).mean())
     df["SMA"] = df["Close"].rolling(20).mean()
     df["STD"] = df["Close"].rolling(20).std()
-    df["Upper Band"] = df["SMA"].add(df["STD"].mul(2))
-    df["Lower Band"] = df["SMA"].sub(df["STD"].mul(2))
+    df["UpperBand"] = df["SMA"].add(df["STD"].mul(2))
+    df["LowerBand"] = df["SMA"].sub(df["STD"].mul(2))
 
     return df
 
 
 def plot_stock_screener(df, ticker):
+    def plot_configuration():
+        [ax1.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
+        [ax2.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
+        [ax3.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
+        [ax4.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
+        [ax5.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
+
+        ax1.margins(x=0, y=0)
+        ax1.tick_params(bottom=False)
+        ax1.tick_params(labelbottom=False)
+        ax1.tick_params(right=False)
+
+        ax2.tick_params(bottom=False)
+        ax2.tick_params(labelbottom=False)
+        ax2.set_yticklabels([])
+        ax2.set_yticks([])
+
+        ax3.set_ylim(0, 100)
+        ax3.tick_params(bottom=False)
+        ax3.tick_params(labelbottom=False)
+        ax3.set_yticklabels([])
+        ax3.set_yticks([])
+        ax3.fill_between(np.arange(len(df)), 30, 70, color='#0055cc', edgecolor='none', alpha=0.15)
+
+        ax4.set_ylim(-100, 200)
+        ax4.tick_params(bottom=False)
+        ax4.tick_params(labelbottom=False)
+        ax4.set_yticklabels([])
+        ax4.set_yticks([])
+
+        ax5.set_ylabel("")
+        ax5.set_yticklabels([])
+        ax5.set_yticks([])
+        ax5.tick_params(bottom=False)
+
+        plt.rcParams['font.family'] = 'Menlo'
+
     def add_vertical_lines(ax):
         for i in range(len(df)):
             current = df["BuyIndex"][i]
             if current == "Buy" or current == "PotentialBuy":
-                ax.axvline(x=i, ymin=0, ymax=10, c="#ff2f92", linewidth=0.5, alpha=0.35, zorder=0, clip_on=False)
+                ax.axvline(x=i, ymin=0, ymax=5.5, c="#ff2f92", linewidth=0.25, alpha=0.65, zorder=0, clip_on=False)
             elif current == "Sell" or current == "PotentialSell":
-                ax.axvline(x=i, ymin=0, ymax=10, c="#0055cc", linewidth=0.5, alpha=0.35, zorder=0, clip_on=False)
+                ax.axvline(x=i, ymin=0, ymax=5.5, c="#0055cc", linewidth=0.25, alpha=0.65, zorder=0, clip_on=False)
 
     def add_buy_and_sell(ax):
 
@@ -256,7 +293,24 @@ def plot_stock_screener(df, ticker):
                     bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.25", facecolor="#0055cc",
                               edgecolor="none", alpha=alpha_value))
 
-    fig = plt.figure(figsize=(16, 9), dpi=300)
+            if current == "Buy" or current == "PotentialBuy":
+                ax.axvline(
+                    x=i,
+                    ymin=(df["Low"][i] - min(df["Low"]) - (height / height_offset) / 2) / height,
+                    ymax=(df["Low"][i] - min(df["Low"]) - (height / height_offset) / 5) / height,
+                    c="#ff2f92",
+                    linewidth=0.25,
+                    alpha=alpha_value, zorder=0, clip_on=False)
+            elif current == "Sell" or current == "PotentialSell":
+                ax.axvline(
+                    x=i,
+                    ymin=(df["High"][i] - min(df["High"]) + (height / height_offset) / 5) / height,
+                    ymax=(df["High"][i] - min(df["High"]) + (height / height_offset) / 2) / height,
+                    c="#0055cc",
+                    linewidth=0.25,
+                    alpha=alpha_value, zorder=0, clip_on=False)
+
+    fig = plt.figure(figsize=(20, 9), dpi=300)
 
     ax1 = plt.subplot2grid((9, 1), (0, 0), rowspan=4)
     ax2 = plt.subplot2grid((9, 1), (4, 0), rowspan=2, sharex=ax1)
@@ -264,7 +318,14 @@ def plot_stock_screener(df, ticker):
     ax4 = plt.subplot2grid((9, 1), (7, 0), rowspan=1, sharex=ax1)
     ax5 = plt.subplot2grid((9, 1), (8, 0), rowspan=3, sharex=ax1)
 
-    mc = mpf.make_marketcolors(up="#0055cc", down="#ff2f92", edge="inherit", wick="inherit", volume="inherit")
+    mc = mpf.make_marketcolors(
+        up="#0055cc",
+        down="#ff2f92",
+        edge="inherit",
+        wick="inherit",
+        volume={"up": "#006d21", "down": "#ff2f92"}
+    )
+
     s = mpf.make_mpf_style(
         base_mpf_style="starsandstripes",
         marketcolors=mc,
@@ -272,29 +333,29 @@ def plot_stock_screener(df, ticker):
         gridstyle="",
     )
 
-    macd_DIF = mpf.make_addplot(df["DIF"], ax=ax2, color="#0055cc")
-    macd_DEM = mpf.make_addplot(df["DEM"], ax=ax2, color="#ffa500")
+    line_width = 0.85
+
+    macd_DIF = mpf.make_addplot(df["DIF"], ax=ax2, color="#0055cc", width=line_width)
+    macd_DEM = mpf.make_addplot(df["DEM"], ax=ax2, color="#ffa500", width=line_width)
     macd_Histogram = mpf.make_addplot(
         df["Histogram"], type="bar", ax=ax2,
         color=["#006d21" if h >= 0 else "#ff2f92" for h in df["Histogram"]])
 
-    rsi = mpf.make_addplot(df["RSI"], ax=ax3, color="#ff2f92")
-    crsi = mpf.make_addplot(df["CRSI"], ax=ax3, color="#0055cc")
+    rsi = mpf.make_addplot(df["RSI"], ax=ax3, color="#ff2f92", width=line_width)
+    crsi = mpf.make_addplot(df["CRSI"], ax=ax3, color="#0055cc", width=line_width)
 
-    kdj_k = mpf.make_addplot(df["K"], ax=ax4, color="#ff2f92")
-    kdj_d = mpf.make_addplot(df["D"], ax=ax4, color="#0055cc")
-    kdj_j = mpf.make_addplot(df["J"], ax=ax4, color="#ffa500")
+    kdj_k = mpf.make_addplot(df["K"], ax=ax4, color="#ff2f92", width=line_width)
+    kdj_d = mpf.make_addplot(df["D"], ax=ax4, color="#0055cc", width=line_width)
+    kdj_j = mpf.make_addplot(df["J"], ax=ax4, color="#ffa500", width=line_width)
 
     plots = [macd_DIF, macd_DEM, macd_Histogram, rsi, crsi, kdj_k, kdj_d, kdj_j]
 
-    file_name = ticker + " " + str(df["Datetime"][0])[:10] + " " + str(
-        df["Datetime"][len(df) - 1])[:10]
+    file_name = ticker + " " + str(df["Datetime"][0])[:10] + " " + str(df["Datetime"][len(df) - 1])[:10]
     if str(df["Datetime"][0]).endswith("00:00:00"):
         file_name = "1d" + " " + file_name
     else:
         file_name = "1m" + " " + file_name
 
-    wtmd = dict(warn_too_much_data=len(df) + 1)
     mpf.plot(
         df, type="candle", ax=ax1, style=s, addplot=plots,
         volume=ax5,
@@ -304,48 +365,14 @@ def plot_stock_screener(df, ticker):
         datetime_format="%y/%m/%d\n%H:%M",
         xrotation=0,
         returnfig=False,
-        **wtmd
+        **(dict(warn_too_much_data=len(df) + 1)),
     )
 
     add_buy_and_sell(ax1)
     add_vertical_lines(ax5)
+    plot_configuration()
 
-    [ax1.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
-    [ax2.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
-    [ax3.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
-    [ax4.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
-    [ax5.spines[s].set_visible(False) for s in ["top", "right", "bottom", "left"]]
-
-    ax3.set_ylim(0, 100)
-    ax4.set_ylim(-100, 200)
-
-    ax1.tick_params(bottom=False)
-    ax1.tick_params(labelbottom=False)
-    ax1.tick_params(right=False)
-
-    ax2.tick_params(bottom=False)
-    ax2.tick_params(labelbottom=False)
-    ax2.set_yticklabels([])
-    ax2.set_yticks([])
-
-    ax3.tick_params(bottom=False)
-    ax3.tick_params(labelbottom=False)
-    ax3.set_yticklabels([])
-    ax3.set_yticks([])
-
-    ax4.tick_params(bottom=False)
-    ax4.tick_params(labelbottom=False)
-    ax4.set_yticklabels([])
-    ax4.set_yticks([])
-
-    ax5.set_ylabel("")
-    ax5.set_yticklabels([])
-    ax5.set_yticks([])
-    ax5.tick_params(bottom=False)
-
-    plt.rcParams['font.family'] = 'Menlo'
-    file_name += ".png"
-    fig.savefig(file_name, transparent=True, bbox_inches="tight")
+    fig.savefig(file_name + ".png", transparent=False, bbox_inches='tight')
 
 
 def plotOneMinute(ticker, trade_date):
@@ -378,13 +405,13 @@ def print_all_stocks(trade_day, principal):
         print("\n%-5s %s" % (ticker, now.strftime("%d/%m/%y %H:%M:%S")))
 
         df = plotOneMinute(ticker, trade_day)
-        df = print_trade(df, principal)
+        df = paper_trade(df, principal)
         print_realtime_ratting(df)
         print(f"{print_trade_records(df):,.2f}", ticker)
         plot_stock_screener(df, ticker)
 
         df = plotOneDay(ticker, "2020-01-01", date_string_today)
-        df = print_trade(df, principal)
+        df = paper_trade(df, principal)
         print_realtime_ratting(df)
         print(f"{print_trade_records(df):,.2f}", ticker)
         plot_stock_screener(df, ticker)
@@ -397,7 +424,7 @@ def print_stock_recent(ticker, start_date, end_date, principal):
     for i in trade_days:
         trade_day = str(i)[:10]
         df = plotOneMinute(ticker, trade_day)
-        df = print_trade(df, principal)
+        df = paper_trade(df, principal)
         print_realtime_ratting(df)
         principal = print_trade_records(df)
 
@@ -405,7 +432,7 @@ def print_stock_recent(ticker, start_date, end_date, principal):
 
 
 tickers = [
-    "2800.hk", "0005.hk", "0700.hk", "2388.hk", "2888.hk",
+    # "2800.hk", "0005.hk", "0700.hk", "2388.hk", "2888.hk",
     "MSFT", "NVDA", "TSM", "GOOGL", "META",
     "ORCL", "AMZN", "QCOM", "AMD", "VZ",
     "NFLX", "ASML", "JPM", "GS", "MS",
@@ -418,21 +445,23 @@ date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
-# df = plotOneMinute("0700.hk", "2023-07-09")
-# df = print_trade(df, principal)
-# plot_stock_screener(df, "0700.hk")
-#
-# df = plotOneMinute("MSFT", "2023-07-07")
-# df = print_trade(df, principal)
-# plot_stock_screener(df, "MSFT")
-#
-# df = plotOneDay("MSFT", "2020-01-01", "2023-07-10")
-# df = print_trade(df, principal)
-# print_trade_records(df)
-# plot_stock_screener(df, "MSFT")
+df = plotOneMinute("0700.hk", "2023-07-10")
+df = paper_trade(df, principal)
+print_trade_records(df)
+plot_stock_screener(df, "0700.hk")
 
-# 1. All test
-print_all_stocks("2023-07-10", principal)
+df = plotOneMinute("MSFT", "2023-07-10")
+df = paper_trade(df, principal)
+print_trade_records(df)
+plot_stock_screener(df, "MSFT")
+
+df = plotOneDay("MSFT", "2020-01-01", "2023-07-11")
+df = paper_trade(df, principal)
+print_trade_records(df)
+plot_stock_screener(df, "MSFT")
+
+# # 1. All test
+# print_all_stocks("2023-07-10", principal)
 
 # # 2.
 # for ticker in tickers:
