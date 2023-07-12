@@ -401,18 +401,20 @@ def get_df_interval(ticker, trade_date, interval, days):
     return df
 
 
-def print_all_stocks(trade_day, principal):
+def test_all_stocks(trade_day, principal):
     for ticker in tickers:
-        now = datetime.now()
-        print("\n%-5s %s" % (ticker, now.strftime("%d/%m/%y %H:%M:%S")))
-
         for key, value in interval_type.items():
             df = get_df_interval(ticker, trade_day, key, value)
             df = paper_trade(df, principal)
-            print_realtime_ratting(df)
-            print_trade_records(df)
-            print(f"{print_trade_records(df):,.2f}", ticker, distinguish_interval(df))
-            plot_stock_screener(df, ticker)
+            # print_realtime_ratting(df)
+            # plot_stock_screener(df, ticker)
+            print("\n%-5s (%s)\nFrom %s\nTo   %s\nEarning %13s" % (
+                ticker,
+                distinguish_interval(df),
+                str(df["Datetime"][0])[:16],
+                str(df["Datetime"][len(df) - 1])[:16],
+                f"{print_trade_records(df) - principal:,.2f}",
+            ))
 
 
 tickers = [
@@ -427,22 +429,23 @@ tickers = [
     "JNJ", "SPLG"
 ]
 
-interval_type = {"1m": 3, "15m": 30, "30m": 30, "60m": 180, "1d": 365}
+interval_type = {"1m": 3, "15m": 59, "30m": 59, "60m": 365, "1d": 500}
 
 today = datetime.today()
 date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
+# # 1. Single test
+# for key, value in interval_type.items():
+#     df = get_df_interval("0700.hk", "2023-07-12", key, value)
+#     df = paper_trade(df, principal)
+#     print_realtime_ratting(df)
+#     print("\n%-5s %18s (%s)" % (ticker, f"{print_trade_records(df):,.2f}", distinguish_interval(df)))
+#     plot_stock_screener(df, "0700.hk")
 
-# df = get_df_interval("0700.hk", "2023-07-12", "1m", interval_type.get("1m"))
-# df = paper_trade(df, principal)
-# print_trade_records(df)
-# plot_stock_screener(df, "0700.hk")
-
-
-# # 1. All test
-# print_all_stocks("2023-07-11", principal)
+# 2. All test
+test_all_stocks("2023-07-11", principal)
 
 
 def prepare_web_content(trade_date):
