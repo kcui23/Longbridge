@@ -212,6 +212,7 @@ def calculate_df(df):
     df["DIF"] = ta.trend.MACD(df["Close"], window_slow=26, window_fast=12).macd()
     df["DEM"] = df["DIF"].ewm(span=9).mean()
     df["Histogram"] = df["DIF"] - df["DEM"].ewm(span=9).mean()
+
     df["KDJ"] = ta.momentum.StochasticOscillator(df["High"], df["Low"], df["Close"]).stoch()
     df["K"] = ta.momentum.StochasticOscillator(df["High"], df["Low"], df["Close"], window=9).stoch()
     df["D"] = df["K"].ewm(com=2).mean()
@@ -220,13 +221,10 @@ def calculate_df(df):
     df["RSI"] = ta.momentum.RSIIndicator(df["Close"], window=14).rsi()
     df["CRSI"] = (df["RSI"] + 2 * df["RSI"].shift(1) + 3 * df["RSI"].shift(2) + 4 * df["RSI"].shift(3)) / 10
 
-    df["CCI"] = ta.trend.CCIIndicator(df["High"], df["Low"], df["Close"], window=20, constant=0.015).cci()
-    df["AO"] = df[["High", "Low"]].mean(axis=1).rolling(5).mean().sub(
-        df[["High", "Low"]].mean(axis=1).rolling(34).mean())
-    df["SMA"] = df["Close"].rolling(20).mean()
-    df["STD"] = df["Close"].rolling(20).std()
-    df["UpperBand"] = df["SMA"].add(df["STD"].mul(2))
-    df["LowerBand"] = df["SMA"].sub(df["STD"].mul(2))
+    vwap = ta.volume.VolumeWeightedAveragePrice(
+        high=df["High"], low=df["Low"], close=df["Close"], volume=df["Volume"],
+        window=14)
+    df["VWAP"] = vwap.volume_weighted_average_price()
 
     return df
 
@@ -286,7 +284,7 @@ def plot_stock_screener(df, ticker):
         for i in range(len(df)):
             current = df["BuyIndex"][i]
             if current == "Buy":
-                text = "Buy\n" + f"{df['Low'][i]:,.2f}"
+                text = "B\n" + f"{df['Low'][i]:,.2f}"
                 ax.annotate(
                     text, xy=(i, df['Low'][i]),
                     xytext=(i, df["Low"][i] - height / height_offset), color="#ffffff", fontsize=8,
@@ -300,7 +298,7 @@ def plot_stock_screener(df, ticker):
                     bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.25", facecolor="#ff2f92",
                               edgecolor="none", alpha=alpha_value))
             elif current == "Sell":
-                text = "Sell\n" + f"{df['High'][i]:,.2f}"
+                text = "S\n" + f"{df['High'][i]:,.2f}"
                 ax.annotate(
                     text,
                     xy=(i, df['High'][i]),
@@ -357,6 +355,8 @@ def plot_stock_screener(df, ticker):
 
     line_width = 0.85
 
+    vwap = mpf.make_addplot(df["VWAP"], ax=ax1, color="#006d21", width=line_width, alpha=0.35)
+
     macd_DIF = mpf.make_addplot(df["DIF"], ax=ax2, color="#0055cc", width=line_width)
     macd_DEM = mpf.make_addplot(df["DEM"], ax=ax2, color="#ffa500", width=line_width)
     macd_Histogram = mpf.make_addplot(
@@ -370,9 +370,9 @@ def plot_stock_screener(df, ticker):
     kdj_d = mpf.make_addplot(df["D"], ax=ax4, color="#0055cc", width=line_width)
     kdj_j = mpf.make_addplot(df["J"], ax=ax4, color="#ffa500", width=line_width)
 
-    plots = [macd_DIF, macd_DEM, macd_Histogram, rsi, crsi, kdj_k, kdj_d, kdj_j]
+    plots = [vwap, macd_DIF, macd_DEM, macd_Histogram, rsi, crsi, kdj_k, kdj_d, kdj_j]
 
-    file_name = distinguish_interval(df) + " " + ticker + " " + str(df["Datetime"][0])[:10] + " " + str(
+    file_name = "images/" + distinguish_interval(df) + " " + ticker + " " + str(df["Datetime"][0])[:10] + " " + str(
         df["Datetime"][len(df) - 1])[:10]
 
     mpf.plot(
@@ -439,10 +439,12 @@ tickers = [
     "V", "MA", "AXP", "XOM", "CVX",
     "TSLA", "MCD", "KO", "PEP", "PG",
     "ABBV", "MRK", "LLY", "UNH", "PFE",
-    "JNJ", "SPLG"
+    "JNJ", "SPLG", "QQQ"
 ]
 
-interval_type = {"1m": 3, "15m": 59, "30m": 59, "60m": 365, "1d": 500}
+interval_type = {
+    "1m": 3, "15m": 59, "30m": 59, "60m": 180, "1d": 500
+}
 
 today = datetime.today()
 date_string = today.strftime("%Y-%m-%d")
@@ -457,10 +459,11 @@ principal = 10000
 #     print("\n%-5s %18s (%s)" % (ticker, f"{print_trade_records(df):,.2f}", distinguish_interval(df)))
 #     plot_stock_screener(df, "0700.hk")
 
-# # 2. All test
-# test_all_stocks("2023-07-11", principal)
+# 2. All test
+test_all_stocks("2023-07-11", principal)
 
 
+# Start of web
 def prepare_web_content(trade_date):
     def find_timing(df):
         buyTime, sellTime = "", ""
@@ -505,7 +508,6 @@ def prepare_web_content(trade_date):
     return res[1:]
 
 
-# Start of web
 app = Flask(__name__, template_folder="template")
 
 
