@@ -12,27 +12,23 @@ from flask import Flask, render_template, request
 
 
 def print_realtime_ratting(df):
-    print("\nDatetime\t\t\tDIR\t\tPrice\tCRSI\tDIF\t\tDEM\t\tKDJ\t\tAO")
+    print("\nDatetime\t\t\tDIR\t\tPrice\tVWAP\tCRSI\tKDJ")
     for i in range(len(df)):
         current = df["BuyIndex"][i]
         if current == "Buy" or current == "PotentialBuy":
-            print("%s\t\033[31mBuy \t%.2f\033[0m\t%5.2f\t%6.2f\t%6.2f\t%6.2f\t%6.2f" % (
+            print("%s\t\033[31mBuy \t%.2f\033[0m\t%5.2f\t%5.2f\t%6.2f" % (
                 str(df["Datetime"][i])[:16],
                 df["Low"][i],
+                df["VWAP"][i],
                 df["CRSI"][i],
-                df["DIF"][i],
-                df["DEM"][i],
-                df["KDJ"][i],
-                df["AO"][i]))
+                df["KDJ"][i]))
         elif current == "Sell" or current == "PotentialSell":
-            print("%s\t\033[34mSell\t%.2f\033[0m\t%5.2f\t%6.2f\t%6.2f\t%6.2f\t%6.2f" % (
+            print("%s\t\033[34mSell\t%.2f\033[0m\t%5.2f\t%5.2f\t%6.2f" % (
                 str(df["Datetime"][i])[:16],
                 df["High"][i],
+                df["VWAP"][i],
                 df["CRSI"][i],
-                df["DIF"][i],
-                df["DEM"][i],
-                df["KDJ"][i],
-                df["AO"][i]))
+                df["KDJ"][i]))
 
 
 def print_trade_records(df):
@@ -76,25 +72,6 @@ def generate_US_trade_days(start_date, end_date):
     return trade_days
 
 
-def calculate_commission(price, position, direction):
-    # Long Bridge commission free
-    res = max(1, 0.005 * position) + 0.003 * position
-
-    if direction == "Sell":
-        res += max(0.01, 0.000008 * price * position) + min(7.27, max(0.01, 0.000145 * position))
-
-    return res
-
-
-def calculate_buy_position(price, balance, direction):
-    for i in range(int(balance / price) + 1, -1, -1):
-        rest = balance - price * i - calculate_commission(price, i, direction)
-        if 0 <= rest < price:
-            return i
-
-    return 0
-
-
 def find_signals(df):
     # Mark all potential buy / sell timings
     df["BuyIndex"] = ""
@@ -128,6 +105,23 @@ def find_signals(df):
 
 
 def paper_trade(df, principal):
+    def calculate_buy_position(price, balance, direction):
+        for i in range(int(balance / price) + 1, -1, -1):
+            rest = balance - price * i - calculate_commission(price, i, direction)
+            if 0 <= rest < price:
+                return i
+
+        return 0
+
+    def calculate_commission(price, position, direction):
+        # Long Bridge commission free
+        res = max(1, 0.005 * position) + 0.003 * position
+
+        if direction == "Sell":
+            res += max(0.01, 0.000008 * price * position) + min(7.27, max(0.01, 0.000145 * position))
+
+        return res
+
     def buy(i):
         direction = "Buy"
         balance = df["Balance"][i]
@@ -418,7 +412,7 @@ def test_all_stocks(trade_day, principal):
         for key, value in interval_type.items():
             df = get_df_interval(ticker, trade_day, key, value)
             df = paper_trade(df, principal)
-            # print_realtime_ratting(df)
+            print_realtime_ratting(df)
             plot_stock_screener(df, ticker)
 
             print("\n%-5s (%s)\nFrom %s\nTo   %s\nEarning %13s" % (
