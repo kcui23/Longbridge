@@ -157,13 +157,15 @@ def paper_trade(df, principal):
 
     take_profit_limit = 0.005
     stop_loss_limit = 0.005
-    buy_lower_limit = 0.005
+    buy_lower_limit = 0.01
     df["Balance"] = principal
     df["Position"] = 0
     df["Commission"] = 0.00
     df["Cost"] = sys.float_info.max
     df["TotalAssets"] = 0.00
     df["Remarks"] = ""
+
+    count_operation = 0  # Mark to make first buy in PotentialBuy
 
     for i in range(len(df)):
         df.iloc[i, df.columns.get_loc("Balance")] = df["Balance"][i - 1]
@@ -178,15 +180,25 @@ def paper_trade(df, principal):
         if position == 0:
             if direction == "PotentialBuy":
                 buy(i)
+                count_operation += 1
+                df.iloc[i, df.columns.get_loc("Remarks")] = "(%d)" % count_operation
+            elif current_price <= last_buy_price * (1 - buy_lower_limit) and count_operation > 0:
+                buy(i)
+                count_operation += 1
+                res = last_buy_price * (1 - buy_lower_limit)
+                df.iloc[i, df.columns.get_loc("Remarks")] = "(%d) <= %.2f Second buy" % (count_operation, res)
         elif position > 0:
             if direction == "PotentialSell" and current_price >= last_buy_price * (1 + take_profit_limit):
                 sell(i)
+                count_operation += 1
                 res = last_buy_price * (1 + take_profit_limit)
-                df.iloc[i, df.columns.get_loc("Remarks")] = ">= %.2f" % res
+                df.iloc[i, df.columns.get_loc("Remarks")] = "(%d) >= %.2f Take profit" % (
+                    count_operation, res)
             elif current_price <= last_buy_price * (1 - stop_loss_limit):
                 sell(i)
+                count_operation += 1
                 res = last_buy_price * (1 - stop_loss_limit)
-                df.iloc[i, df.columns.get_loc("Remarks")] = "<= %.2f" % res
+                df.iloc[i, df.columns.get_loc("Remarks")] = "(%d) <= %.2f Stop loss" % (count_operation, res)
 
         df.iloc[i, df.columns.get_loc("TotalAssets")] = \
             df["Balance"][i] if df["Position"][i] == 0 else df["Balance"][i] + df["Close"][i] * df["Position"][i]
@@ -407,7 +419,8 @@ def test_all_stocks(trade_day, principal):
             df = get_df_interval(ticker, trade_day, key, value)
             df = paper_trade(df, principal)
             # print_realtime_ratting(df)
-            # plot_stock_screener(df, ticker)
+            plot_stock_screener(df, ticker)
+
             print("\n%-5s (%s)\nFrom %s\nTo   %s\nEarning %13s" % (
                 ticker,
                 distinguish_interval(df),
@@ -444,8 +457,8 @@ principal = 10000
 #     print("\n%-5s %18s (%s)" % (ticker, f"{print_trade_records(df):,.2f}", distinguish_interval(df)))
 #     plot_stock_screener(df, "0700.hk")
 
-# 2. All test
-test_all_stocks("2023-07-11", principal)
+# # 2. All test
+# test_all_stocks("2023-07-11", principal)
 
 
 def prepare_web_content(trade_date):
