@@ -1,3 +1,4 @@
+import sys
 import matplotlib.pyplot as plt
 import mplfinance as mpf
 import numpy as np
@@ -16,7 +17,7 @@ def print_realtime_ratting(df):
         current = df["BuyIndex"][i]
         if current == "Buy" or current == "PotentialBuy":
             print("%s\t\033[31mBuy \t%.2f\033[0m\t%5.2f\t%6.2f\t%6.2f\t%6.2f\t%6.2f" % (
-                df["Datetime"][i],
+                str(df["Datetime"][i])[:16],
                 df["Low"][i],
                 df["CRSI"][i],
                 df["DIF"][i],
@@ -25,7 +26,7 @@ def print_realtime_ratting(df):
                 df["AO"][i]))
         elif current == "Sell" or current == "PotentialSell":
             print("%s\t\033[34mSell\t%.2f\033[0m\t%5.2f\t%6.2f\t%6.2f\t%6.2f\t%6.2f" % (
-                df["Datetime"][i],
+                str(df["Datetime"][i])[:16],
                 df["High"][i],
                 df["CRSI"][i],
                 df["DIF"][i],
@@ -41,7 +42,7 @@ def print_trade_records(df):
 
         if direction == "Buy" or direction == "Sell":
             print("%s\t%-4s\t%5.2f\t%5d\t%6.2f\t%10s\t%10s\t%s" % (
-                df["Datetime"][i],
+                str(df["Datetime"][i])[:16],
                 df["BuyIndex"][i],
                 df["Low"][i] if df["BuyIndex"][i] == "Buy" else df["High"][i],
                 df["Position"][i] if df["Position"][i] > 0 else df["Position"][i - 1],
@@ -152,14 +153,15 @@ def paper_trade(df, principal):
         df.iloc[i, df.columns.get_loc("Balance")] = balance + current_price * position - commission
         df.iloc[i, df.columns.get_loc("Commission")] = commission
         df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
-        df.iloc[i, df.columns.get_loc("Cost")] = 0
+        df.iloc[i, df.columns.get_loc("Cost")] = current_price - commission / max(position, 1)
 
     take_profit_limit = 0.005
     stop_loss_limit = 0.005
+    buy_lower_limit = 0.005
     df["Balance"] = principal
     df["Position"] = 0
     df["Commission"] = 0.00
-    df["Cost"] = 0.00
+    df["Cost"] = sys.float_info.max
     df["TotalAssets"] = 0.00
     df["Remarks"] = ""
 
@@ -167,16 +169,17 @@ def paper_trade(df, principal):
         df.iloc[i, df.columns.get_loc("Balance")] = df["Balance"][i - 1]
         df.iloc[i, df.columns.get_loc("Position")] = df["Position"][i - 1]
         df.iloc[i, df.columns.get_loc("Cost")] = df["Cost"][i - 1]
+
         position = df["Position"][i]
         direction = df["BuyIndex"][i]
+        current_price = df["High"][i]
+        last_buy_price = df["Cost"][i]
 
-        if direction == "PotentialBuy" and position == 0:
-            buy(i)
+        if position == 0:
+            if direction == "PotentialBuy":
+                buy(i)
         elif position > 0:
-            current_price = df["High"][i]
-            last_buy_price = df["Cost"][i]
-
-            if direction == "PotentialSell" and (current_price >= last_buy_price * (1 + take_profit_limit)):
+            if direction == "PotentialSell" and current_price >= last_buy_price * (1 + take_profit_limit):
                 sell(i)
                 res = last_buy_price * (1 + take_profit_limit)
                 df.iloc[i, df.columns.get_loc("Remarks")] = ">= %.2f" % res
@@ -186,10 +189,7 @@ def paper_trade(df, principal):
                 df.iloc[i, df.columns.get_loc("Remarks")] = "<= %.2f" % res
 
         df.iloc[i, df.columns.get_loc("TotalAssets")] = \
-            df["Balance"][i] \
-                if df["Position"][i] == 0 else df["Balance"][i] + \
-                                               df["Close"][i] * \
-                                               df["Position"][i]
+            df["Balance"][i] if df["Position"][i] == 0 else df["Balance"][i] + df["Close"][i] * df["Position"][i]
 
     return df
 
@@ -382,74 +382,19 @@ def plot_stock_screener(df, ticker):
     fig.savefig(file_name + ".png", transparent=False, bbox_inches='tight')
 
 
-def plotOneMinute(ticker, trade_date):
+def get_df_interval(ticker, trade_date, interval, days):
     current_date = datetime.now()
-    start_date = (current_date - timedelta(days=3)).strftime("%Y-%m-%d")
+    start_date = (current_date - timedelta(days=days)).strftime("%Y-%m-%d")
     start_time = pendulum.parse(start_date + " 00:00:00")
     end_time = pendulum.parse(trade_date + " 23:59:59")
 
-    df = yf.download(ticker, start=start_time, end=end_time, interval="1m", progress=False)
-    df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
+    df = yf.download(ticker, start=start_time, end=end_time, interval=interval, progress=False)
+    if interval == "1m":
+        df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
+    else:
+        df.index = df.index.tz_localize("UTC")
+        df.index = df.index.tz_convert("US/Eastern")
 
-    df = calculate_df(df)
-    df = find_signals(df)
-
-    return df
-
-
-def plotFifteenMinute(ticker, trade_date):
-    current_date = datetime.now()
-    start_date = (current_date - timedelta(days=59)).strftime("%Y-%m-%d")
-    start_time = pendulum.parse(start_date + " 00:00:00")
-    end_time = pendulum.parse(trade_date + " 23:59:59")
-
-    df = yf.download(ticker, start=start_time, end=end_time, interval="15m", progress=False)
-    df.index = df.index.tz_localize("UTC")
-    df.index = df.index.tz_convert("US/Eastern")
-
-    df = calculate_df(df)
-    df = find_signals(df)
-
-    return df
-
-
-def plotThirtyMinute(ticker, trade_date):
-    current_date = datetime.now()
-    start_date = (current_date - timedelta(days=59)).strftime("%Y-%m-%d")
-    start_time = pendulum.parse(start_date + " 00:00:00")
-    end_time = pendulum.parse(trade_date + " 23:59:59")
-
-    df = yf.download(ticker, start=start_time, end=end_time, interval="30m", progress=False)
-    df.index = df.index.tz_localize("UTC")
-    df.index = df.index.tz_convert("US/Eastern")
-
-    df = calculate_df(df)
-    df = find_signals(df)
-
-    return df
-
-
-def plotSixtyMinute(ticker, trade_date):
-    current_date = datetime.now()
-    start_date = (current_date - timedelta(days=180)).strftime("%Y-%m-%d")
-    start_time = pendulum.parse(start_date + " 00:00:00")
-    end_time = pendulum.parse(trade_date + " 23:59:59")
-
-    df = yf.download(ticker, start=start_time, end=end_time, interval="60m", progress=False)
-    df.index = df.index.tz_localize("UTC")
-    df.index = df.index.tz_convert("US/Eastern")
-
-    df = calculate_df(df)
-    df = find_signals(df)
-
-    return df
-
-
-def plotOneDay(ticker, trade_date):
-    current_date = datetime.now()
-    start_date = (current_date - timedelta(days=500)).strftime("%Y-%m-%d")
-
-    df = yf.download(ticker, start=start_date, end=trade_date, interval="1d", progress=False)
     df = calculate_df(df)
     df = find_signals(df)
 
@@ -457,40 +402,17 @@ def plotOneDay(ticker, trade_date):
 
 
 def print_all_stocks(trade_day, principal):
-    # For all stocks in the list
     for ticker in tickers:
         now = datetime.now()
         print("\n%-5s %s" % (ticker, now.strftime("%d/%m/%y %H:%M:%S")))
 
-        df = plotOneMinute(ticker, trade_day)
-        df = paper_trade(df, principal)
-        print_realtime_ratting(df)
-        print(f"{print_trade_records(df):,.2f}", ticker)
-        plot_stock_screener(df, ticker)
-
-        df = plotFifteenMinute(ticker, trade_day)
-        df = paper_trade(df, principal)
-        print_realtime_ratting(df)
-        print(f"{print_trade_records(df):,.2f}", ticker)
-        plot_stock_screener(df, ticker)
-
-        df = plotThirtyMinute(ticker, trade_day)
-        df = paper_trade(df, principal)
-        print_realtime_ratting(df)
-        print(f"{print_trade_records(df):,.2f}", ticker)
-        plot_stock_screener(df, ticker)
-
-        df = plotSixtyMinute(ticker, trade_day)
-        df = paper_trade(df, principal)
-        print_realtime_ratting(df)
-        print(f"{print_trade_records(df):,.2f}", ticker)
-        plot_stock_screener(df, ticker)
-
-        df = plotOneDay(ticker, trade_day)
-        df = paper_trade(df, principal)
-        print_realtime_ratting(df)
-        print(f"{print_trade_records(df):,.2f}", ticker)
-        plot_stock_screener(df, ticker)
+        for key, value in interval_type.items():
+            df = get_df_interval(ticker, trade_day, key, value)
+            df = paper_trade(df, principal)
+            print_realtime_ratting(df)
+            print_trade_records(df)
+            print(f"{print_trade_records(df):,.2f}", ticker, distinguish_interval(df))
+            plot_stock_screener(df, ticker)
 
 
 tickers = [
@@ -505,28 +427,22 @@ tickers = [
     "JNJ", "SPLG"
 ]
 
+interval_type = {"1m": 3, "15m": 30, "30m": 30, "60m": 180, "1d": 365}
+
 today = datetime.today()
 date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
-# df = plotOneMinute("0700.hk", "2023-07-10")
+
+# df = get_df_interval("0700.hk", "2023-07-12", "1m", interval_type.get("1m"))
 # df = paper_trade(df, principal)
 # print_trade_records(df)
 # plot_stock_screener(df, "0700.hk")
-#
-# df = plotOneMinute("MSFT", "2023-07-10")
-# df = paper_trade(df, principal)
-# print_trade_records(df)
-# plot_stock_screener(df, "MSFT")
-#
-# df = plotOneDay("MSFT", "2020-01-01", "2023-07-11")
-# df = paper_trade(df, principal)
-# print_trade_records(df)
-# plot_stock_screener(df, "MSFT")
 
-# 1. All test
-print_all_stocks("2023-07-10", principal)
+
+# # 1. All test
+# print_all_stocks("2023-07-11", principal)
 
 
 def prepare_web_content(trade_date):
@@ -550,22 +466,22 @@ def prepare_web_content(trade_date):
         print("Trade date: %s\tTicker: %-5s\tCalculation date: %s" % (
             trade_date, ticker, now.strftime("%d/%m/%y %H:%M:%S")))
 
-        df = plotOneMinute(ticker, trade_date)
+        df = get_df_interval(ticker, trade_date, "1m", interval_type.get("1m"))
         current = [
             ticker, f"{df['CRSI'][len(df) - 1]:,.2f}", f"{df['Close'][len(df) - 1]:,.2f}",
             "", "", "", "", "", "", "", "", "", ""]
         current[3], current[4] = find_timing(df)
 
-        df = plotFifteenMinute(ticker, trade_date)
+        df = get_df_interval(ticker, trade_date, "15m", interval_type.get("15m"))
         current[5], current[6] = find_timing(df)
 
-        df = plotThirtyMinute(ticker, trade_date)
+        df = get_df_interval(ticker, trade_date, "30m", interval_type.get("30m"))
         current[7], current[8] = find_timing(df)
 
-        df = plotSixtyMinute(ticker, trade_date)
+        df = get_df_interval(ticker, trade_date, "60m", interval_type.get("60m"))
         current[9], current[10] = find_timing(df)
 
-        df = plotOneDay(ticker, trade_date)
+        df = get_df_interval(ticker, trade_date, "1d", interval_type.get("1d"))
         current[11], current[12] = find_timing(df)
 
         res = np.append(res, [current], axis=0)
