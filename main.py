@@ -409,7 +409,7 @@ def get_df_interval(ticker, trade_date, interval, days):
 
 
 def test_all_stocks(trade_day, principal):
-    for ticker, _ in exchanges.items():
+    for ticker, _ in ticker_exchanges.items():
         for key, value in interval_type.items():
             df = get_df_interval(ticker, trade_day, key, value)
             df = paper_trade(df, principal)
@@ -425,7 +425,22 @@ def test_all_stocks(trade_day, principal):
             ))
 
 
-exchanges = {
+ticker_exchanges = {
+    ticker: "NASDAQ" if ticker in [
+        "MSFT", "NVDA", "GOOGL", "AMZN", "META",
+        "AMD", "ADBE", "QCOM", "NFLX", "ASML",
+        "AVGO", "TSLA", "PEP", "QQQ"]
+    else "NYSE" for ticker in [
+        "MSFT", "NVDA", "GOOGL", "TSM", "AMZN",
+        "META", "ORCL", "AMD", "ADBE", "QCOM",
+        "NFLX", "ASML", "AVGO", "VZ", "GS",
+        "JPM", "MS", "WFC", "BAC", "C",
+        "V", "MA", "AXP", "XOM", "CVX",
+        "TSLA", "MCD", "KO", "PEP", "PG",
+        "ABBV", "MRK", "LLY", "UNH", "PFE",
+        "JNJ", "QQQ"]}
+
+ticker_exchanges = {
     ticker: "NASDAQ" if ticker in [
         "MSFT", "NVDA", "GOOGL", "AMZN", "META",
         "AMD", "ADBE", "QCOM", "NFLX", "ASML",
@@ -487,7 +502,7 @@ def prepare_web_content(trade_date):
 
     res = np.array([["APPL", 0.00, 0.00, "", "", "", "", "", "", "", "", "", ""]])
 
-    for ticker, _ in exchanges.items():
+    for ticker, _ in ticker_exchanges.items():
         now = datetime.now()
         print("Trade date: %s\tTicker: %-5s\tCalculation date: %s" % (
             trade_date, ticker, now.strftime("%d/%m/%y %H:%M:%S")))
@@ -518,7 +533,7 @@ def prepare_web_content(trade_date):
 def prepare_tradingview(interval):
     res = np.array([["APPL", "", "", "", "", ""]])
 
-    for ticker, exchange in exchanges.items():
+    for ticker, exchange in ticker_exchanges.items():
         handler = TA_Handler(
             symbol=ticker,
             exchange=exchange,
