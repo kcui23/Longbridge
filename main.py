@@ -313,7 +313,7 @@ def plot_stock_screener(df, ticker):
                     ymin=(df["Low"][i] - min(df["Low"]) - (height / height_offset) / 2) / height,
                     ymax=(df["Low"][i] - min(df["Low"]) - (height / height_offset) / 5) / height,
                     c="#ff2f92",
-                    linewidth=0.25,
+                    linewidth=0,
                     alpha=alpha_value, zorder=0, clip_on=False)
             elif current == "Sell" or current == "PotentialSell":
                 ax.axvline(
@@ -321,7 +321,7 @@ def plot_stock_screener(df, ticker):
                     ymin=(df["High"][i] - min(df["High"]) + (height / height_offset) / 5) / height,
                     ymax=(df["High"][i] - min(df["High"]) + (height / height_offset) / 2) / height,
                     c="#0055cc",
-                    linewidth=0.25,
+                    linewidth=0,
                     alpha=alpha_value, zorder=0, clip_on=False)
 
     fig = plt.figure(figsize=(20, 9), dpi=300)
@@ -426,6 +426,7 @@ def test_all_stocks(trade_day, principal):
 
 tickers = [
     # "2800.hk", "0005.hk", "0700.hk", "2388.hk", "2888.hk",
+    "APPL",
     "MSFT", "NVDA", "GOOGL", "TSM", "AMZN",
     "META", "ORCL", "AMD", "ADBE", "QCOM",
     "NFLX", "ASML", "AVGO", "VZ", "GS",
@@ -437,13 +438,14 @@ tickers = [
 ]
 
 interval_type = {
-    "1m": 3, "15m": 59, "30m": 59, "60m": 180, "1d": 500
+    "1m": 3, "15m": 30, "30m": 59, "60m": 180, "1d": 365
 }
 
 today = datetime.today()
 date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
+
 
 # # 1. Single test
 # for key, value in interval_type.items():
@@ -453,11 +455,13 @@ principal = 10000
 #     print("\n%-5s %18s (%s)" % (ticker, f"{print_trade_records(df):,.2f}", distinguish_interval(df)))
 #     plot_stock_screener(df, "0700.hk")
 
-# 2. All test
-test_all_stocks("2023-07-11", principal)
+# # 2. All test
+# test_all_stocks("2023-07-12", principal)
 
 
 # Start of web
+
+
 def prepare_web_content(trade_date):
     def find_timing(df):
         buyTime, sellTime = "", ""
