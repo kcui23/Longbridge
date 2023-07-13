@@ -471,8 +471,6 @@ principal = 10000
 
 
 # Start of web
-
-
 def prepare_web_content(trade_date):
     def find_timing(df):
         buyTime, sellTime = "", ""
@@ -559,9 +557,9 @@ app = Flask(__name__, template_folder="template")
 def handle_query():
     if request.method == "POST":
         trade_date = request.form["trade_date"]
-        return render_template("home.html", data=prepare_web_content(trade_date))
+        return render_template("trade_view_price.html", data=prepare_web_content(trade_date))
     else:
-        return render_template("home.html")
+        return render_template("trade_view_price.html")
 
 
 @app.route("/queryTradingview", methods=["GET", "POST"])
