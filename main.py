@@ -9,6 +9,7 @@ import ta
 import pendulum
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request
+from tradingview_ta import TA_Handler, Interval
 
 
 def print_realtime_ratting(df):
@@ -443,10 +444,19 @@ interval_type = {
     "1m": 3, "15m": 30, "30m": 59, "60m": 180, "1d": 365
 }
 
+intervals = {
+    "1m": Interval.INTERVAL_1_MINUTE,
+    "5m": Interval.INTERVAL_5_MINUTES,
+    "15m": Interval.INTERVAL_15_MINUTES,
+    "1h": Interval.INTERVAL_1_HOUR,
+    "1d": Interval.INTERVAL_1_DAY,
+}
+
 today = datetime.today()
 date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
+
 
 # # 1. Single test
 # for key, value in interval_type.items():
@@ -456,8 +466,8 @@ principal = 10000
 #     print("\n%-5s %18s (%s)" % (ticker, f"{print_trade_records(df):,.2f}", distinguish_interval(df)))
 #     plot_stock_screener(df, "0700.hk")
 
-# 2. All test
-test_all_stocks("2023-07-12", principal)
+# # 2. All test
+# test_all_stocks("2023-07-12", principal)
 
 
 # Start of web
@@ -507,6 +517,41 @@ def prepare_web_content(trade_date):
     return res[1:]
 
 
+def prepare_tradingview(interval):
+    res = np.array([["APPL", "", "", "", "", ""]])
+
+    for ticker, exchange in exchanges.items():
+        handler = TA_Handler(
+            symbol=ticker,
+            exchange=exchange,
+            screener="america",
+        )
+
+        handler.interval = intervals.get(interval)
+        current = [ticker, "", "", "", "", ""]
+
+        try:
+            now = datetime.now()
+            print("Ticker: %-5s\t%4s\ton: %s" % (
+                ticker, interval, now.strftime("%d/%m/%y %H:%M:%S")))
+
+            analysis = handler.get_analysis()
+            latest_price = analysis.indicators["close"]
+            ratting = analysis.summary
+            current[1] = f"{latest_price:,.2f}"
+            current[2] = ratting.get('RECOMMENDATION')
+            current[3] = ratting.get('BUY')
+            current[4] = ratting.get('SELL')
+            current[5] = ratting.get('NEUTRAL')
+
+        except Exception as e:
+            print(f"Error retrieving data for {ticker} at {interval}: {e}")
+
+        res = np.append(res, [current], axis=0)
+
+    return res[1:]
+
+
 app = Flask(__name__, template_folder="template")
 
 
@@ -519,9 +564,19 @@ def handle_query():
         return render_template("home.html")
 
 
+@app.route("/queryTradingview", methods=["GET", "POST"])
+def handle_tradingview():
+    if request.method == "POST":
+        interval = request.form["interval"]
+        return render_template("trade_view_screener.html", data=prepare_tradingview(interval))
+    else:
+        return render_template("trade_view_screener.html")
+
+
 @app.route("/")
 def home():
     handle_query()
+    handle_tradingview()
 
 
 if __name__ == "__main__":
