@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Tradingview Screener</title>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        form {
+            margin: 2%;
+        }
+
+        table {
+            border-collapse: collapse;
+            padding: 2%;
+        }
+
+        table, th, td {
+            border: 0 solid black;
+        }
+
+        th, td {
+            padding: 10px;
+        }
+
+        th {
+            font-weight: bold;
+        }
+
+        tr {
+            text-align: center;
+        }
+
+        td {
+            font-family: Menlo, system-ui;
+            text-align: right;
+        }
+
+        thead {
+            color: #0055cc;
+        }
+
+        li {
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        .page-item {
+            color: #0055cc;
+        }
+
+        .page-link {
+            color: black;
+        }
+
+        .page-link:active, .page-link:focus {
+            color: white;
+            background-color: #0055cc;
+        }
+    </style>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script>
+        function setInterval(value) {
+            let input = document.getElementById("interval");
+            input.value = value;
+            let form = document.getElementById("pickInterval");
+            form.submit();
+        }
+    </script>
+</head>
+<body>
+<header>
+    <p class="h2">Trade time screener</p>
+</header>
+<main>
+    <form id="pickInterval" method="POST" action="/queryTradingview" class="form">
+        <input type="hidden" name="interval" id="interval" value="" aria-describedby="tickerHelp">
+        <nav aria-label="Intervals from tradingview">
+            <ul class="pagination" style="display: flex; width: 100%;">
+                <li class="page-item"><a class="page-link" href="#" onclick="setInterval('1m')">1m</a></li>
+                <li class="page-item"><a class="page-link" href="#" onclick="setInterval('5m')">5m</a></li>
+                <li class="page-item"><a class="page-link" href="#" onclick="setInterval('15m')">15m</a></li>
+                <li class="page-item"><a class="page-link" href="#" onclick="setInterval('1h')">1h</a></li>
+                <li class="page-item"><a class="page-link" href="#" onclick="setInterval('1d')">1d</a></li>
+            </ul>
+        </nav>
+        <small id="tickerHelp" class="form-text text-muted">
+            Please pick a interval<br>
+            請選擇交易间隔
+        </small>
+    </form>
+
+    <table id="stockScreener" class="table-responsive table-striped table">
+        <thead>
+        <tr>
+            <th style="width: 15%">Ticker</th>
+            <th style="width: 15%; font-weight: bold;">Latest price</th>
+            <th>Recommend</th>
+            <th>Sell</th>
+            <th>Neutral</th>
+            <th>Buy</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for row in data %}
+        <tr>
+            {% for col in row %}
+            <td>{{ col }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</main>
+</body>
+</html>
