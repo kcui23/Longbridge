@@ -408,7 +408,7 @@ def get_df_interval(ticker, trade_date, interval, days):
 
 
 def test_all_stocks(trade_day, principal):
-    for ticker in tickers:
+    for ticker, _ in exchanges.items():
         for key, value in interval_type.items():
             df = get_df_interval(ticker, trade_day, key, value)
             df = paper_trade(df, principal)
@@ -424,18 +424,20 @@ def test_all_stocks(trade_day, principal):
             ))
 
 
-tickers = [
-    # "2800.hk", "0005.hk", "0700.hk", "2388.hk", "2888.hk",
-    "APPL",
-    "MSFT", "NVDA", "GOOGL", "TSM", "AMZN",
-    "META", "ORCL", "AMD", "ADBE", "QCOM",
-    "NFLX", "ASML", "AVGO", "VZ", "GS",
-    "JPM", "MS", "WFC", "BAC", "C",
-    "V", "MA", "AXP", "XOM", "CVX",
-    "TSLA", "MCD", "KO", "PEP", "PG",
-    "ABBV", "MRK", "LLY", "UNH", "PFE",
-    "JNJ", "SPLG", "QQQ"
-]
+exchanges = {
+    ticker: "NASDAQ" if ticker in [
+        "MSFT", "NVDA", "GOOGL", "AMZN", "META",
+        "AMD", "ADBE", "QCOM", "NFLX", "ASML",
+        "AVGO", "TSLA", "PEP", "QQQ"]
+    else "NYSE" for ticker in [
+        "MSFT", "NVDA", "GOOGL", "TSM", "AMZN",
+        "META", "ORCL", "AMD", "ADBE", "QCOM",
+        "NFLX", "ASML", "AVGO", "VZ", "GS",
+        "JPM", "MS", "WFC", "BAC", "C",
+        "V", "MA", "AXP", "XOM", "CVX",
+        "TSLA", "MCD", "KO", "PEP", "PG",
+        "ABBV", "MRK", "LLY", "UNH", "PFE",
+        "JNJ", "QQQ"]}
 
 interval_type = {
     "1m": 3, "15m": 30, "30m": 59, "60m": 180, "1d": 365
@@ -446,7 +448,6 @@ date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000
 
-
 # # 1. Single test
 # for key, value in interval_type.items():
 #     df = get_df_interval("0700.hk", "2023-07-12", key, value)
@@ -455,8 +456,8 @@ principal = 10000
 #     print("\n%-5s %18s (%s)" % (ticker, f"{print_trade_records(df):,.2f}", distinguish_interval(df)))
 #     plot_stock_screener(df, "0700.hk")
 
-# # 2. All test
-# test_all_stocks("2023-07-12", principal)
+# 2. All test
+test_all_stocks("2023-07-12", principal)
 
 
 # Start of web
@@ -478,7 +479,7 @@ def prepare_web_content(trade_date):
 
     res = np.array([["APPL", 0.00, 0.00, "", "", "", "", "", "", "", "", "", ""]])
 
-    for ticker in tickers:
+    for ticker, _ in exchanges.items():
         now = datetime.now()
         print("Trade date: %s\tTicker: %-5s\tCalculation date: %s" % (
             trade_date, ticker, now.strftime("%d/%m/%y %H:%M:%S")))
