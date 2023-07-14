@@ -195,8 +195,7 @@ def paper_trade(df, principal):
                 res = last_buy_price * (1 - stop_loss_limit)
                 df.iloc[i, df.columns.get_loc("Remarks")] = "(%d) <= %.2f Stop loss" % (count_operation, res)
 
-        df.iloc[i, df.columns.get_loc("TotalAssets")] = \
-            df["Balance"][i] if df["Position"][i] == 0 else df["Balance"][i] + df["Close"][i] * df["Position"][i]
+        df.iloc[i, df.columns.get_loc("TotalAssets")] = df["Balance"][i] if df["Position"][i] == 0 else df["Balance"][i] + df["Close"][i] * df["Position"][i]
 
     return df
 
@@ -367,8 +366,7 @@ def plot_stock_screener(df, ticker):
 
     plots = [vwap, macd_DIF, macd_DEM, macd_Histogram, rsi, crsi, kdj_k, kdj_d, kdj_j]
 
-    file_name = "images/" + distinguish_interval(df) + " " + ticker + " " + str(df["Datetime"][0])[:10] + " " + str(
-        df["Datetime"][len(df) - 1])[:10]
+    file_name = "images/" + distinguish_interval(df) + " " + ticker + " " + str(df["Datetime"][0])[:10] + " " + str(df["Datetime"][len(df) - 1])[:10]
 
     mpf.plot(
         df, type="candle", ax=ax1, style=s, addplot=plots,
@@ -448,6 +446,7 @@ intervals = {
     "1m": Interval.INTERVAL_1_MINUTE,
     "5m": Interval.INTERVAL_5_MINUTES,
     "15m": Interval.INTERVAL_15_MINUTES,
+    "30m": Interval.INTERVAL_30_MINUTES,
     "1h": Interval.INTERVAL_1_HOUR,
     "1d": Interval.INTERVAL_1_DAY,
 }
@@ -535,13 +534,13 @@ def prepare_tradingview(interval):
 
             analysis = handler.get_analysis()
             latest_price = analysis.indicators["close"]
+            latest_change = analysis.indicators["change"]
             ratting = analysis.summary
-            current[1] = f"{latest_price:,.2f}"
+            current[1] = f"{latest_price:,.2f}" + f" {latest_change:,.2f}"
             current[2] = ratting.get('RECOMMENDATION')
             current[3] = ratting.get('BUY')
             current[4] = ratting.get('NEUTRAL')
             current[5] = ratting.get('SELL')
-
         except Exception as e:
             print(f"Error retrieving data for {ticker} at {interval}: {e}")
 
