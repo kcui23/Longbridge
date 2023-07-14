@@ -11,7 +11,7 @@
 </head>
 <body>
 <header>
-    <p class="h2">Trade time screener</p>
+    <p class="h2">Trade time price screener</p>
 </header>
 <main>
     <form method="POST" action="/query" class="form">
@@ -30,35 +30,37 @@
             </button>
         </div>
     </form>
-
-    <table id="stockScreener" class="table-responsive table-striped table">
-        <thead>
-        <tr>
-            <th style="width: 5%">Ticker</th>
-            <th style="width: 5%">CRSI</th>
-            <th style="width: 5%; font-weight: bold;">Latest price</th>
-            <th>Buy<br>1m</th>
-            <th>Sell<br>1m</th>
-            <th>Buy<br>15m</th>
-            <th>Sell<br>15m</th>
-            <th>Buy<br>30m</th>
-            <th>Sell<br>30m</th>
-            <th>Buy<br>60m</th>
-            <th>Sell<br>60m</th>
-            <th>Buy<br>1d</th>
-            <th>Sell<br>1d</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for row in data %}
-        <tr>
-            {% for col in row %}
-            <td>{{ col }}</td>
+    <div class="table-responsive" style="display: -webkit-inline-flex; width: fit-content;">
+        <table id="stockScreenerPrice" class="table table-striped">
+            <thead>
+            <tr>
+                <th style="width: 5%">Ticker</th>
+                <th style="width: 5%">CRSI</th>
+                <th style="width: 5%; font-weight: bold;">Latest price</th>
+                <th>Buy<br>1m</th>
+                <th>Sell<br>1m</th>
+                <th>Buy<br>15m</th>
+                <th>Sell<br>15m</th>
+                <th>Buy<br>30m</th>
+                <th>Sell<br>30m</th>
+                <th>Buy<br>60m</th>
+                <th>Sell<br>60m</th>
+                <th>Buy<br>1d</th>
+                <th>Sell<br>1d</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in data %}
+            <tr>
+                {% for col in row %}
+                <td>{{ col }}</td>
+                {% endfor %}
+            </tr>
             {% endfor %}
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </div>
+
 </main>
 </body>
 </html>

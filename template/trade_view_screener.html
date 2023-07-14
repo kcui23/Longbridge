@@ -11,18 +11,19 @@
 </head>
 <body>
 <header>
-    <p class="h2">Trade time screener</p>
+    <p class="h2">Trade time rating screener</p>
 </header>
 <main>
     <form id="pickInterval" method="POST" action="/queryTradingview" class="form">
         <input type="hidden" name="interval" id="interval" value="" aria-describedby="tickerHelp">
         <nav aria-label="Intervals from tradingview">
             <ul class="pagination">
-                <li class="page-item"><a class="page-link" href="#" onclick="setInterval('1m')">1m</a></li>
-                <li class="page-item"><a class="page-link" href="#" onclick="setInterval('5m')">5m</a></li>
-                <li class="page-item"><a class="page-link" href="#" onclick="setInterval('15m')">15m</a></li>
-                <li class="page-item"><a class="page-link" href="#" onclick="setInterval('1h')">1h</a></li>
-                <li class="page-item"><a class="page-link" href="#" onclick="setInterval('1d')">1d</a></li>
+                <li class="page-item"><a class="page-link" onclick="setInterval('1m')"><span class="interval-selection">1m</span></a></li>
+                <li class="page-item"><a class="page-link" onclick="setInterval('5m')"><span class="interval-selection">5m</span></a></li>
+                <li class="page-item"><a class="page-link" onclick="setInterval('15m')"><span class="interval-selection">15m</span></a></li>
+                <li class="page-item"><a class="page-link" onclick="setInterval('30m')"><span class="interval-selection">30m</span></a></li>
+                <li class="page-item"><a class="page-link" onclick="setInterval('1h')"><span class="interval-selection">1h</span></a></li>
+                <li class="page-item"><a class="page-link" onclick="setInterval('1d')"><span class="interval-selection">1d</span></a></li>
             </ul>
         </nav>
         <small id="tickerHelp" class="form-text text-muted">
@@ -31,28 +32,29 @@
         </small>
     </form>
 
-
-    <table id="stockScreener" class="table-responsive table-striped table">
-        <thead>
-        <tr>
-            <th style="width: 15%">Ticker</th>
-            <th style="width: 15%;">Latest price</th>
-            <th>Recommend</th>
-            <th style="width: 15%">Buy</th>
-            <th style="width: 15%">Neutral</th>
-            <th style="width: 15%">Sell</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for row in data %}
-        <tr>
-            {% for col in row %}
-            <td>{{ col }}</td>
+    <div class="table-responsive" style="display: -webkit-inline-flex">
+        <table id="stockScreenerRating" class="table table-striped">
+            <thead>
+            <tr>
+                <th>Ticker</th>
+                <th style="width: 15%">Latest price<br>Change</th>
+                <th>Recommend</th>
+                <th style="width: 15%">Buy</th>
+                <th style="width: 15%">Neutral</th>
+                <th style="width: 15%">Sell</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in data %}
+            <tr>
+                {% for col in row %}
+                <td>{{ col }}</td>
+                {% endfor %}
+            </tr>
             {% endfor %}
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </div>
 </main>
 </body>
 </html>
