@@ -12,7 +12,9 @@ const changeBuySignals = () => {
         cell.style.padding = "0.15rem";
 
         let colIndex = cell.cellIndex;
-        if (colIndex === 1) {
+        if (colIndex === 0) {
+            cell.style.textAlign = "center";
+        } else if (colIndex === 1) {
             const re = /(\d+\.\d+)\s+(-?\d+\.\d+)/;
             const result = re.exec(current);
             const latest_price = result[1];
@@ -51,13 +53,16 @@ const changeBuySignals = () => {
 
             switch (colIndex) {
                 case 3:
-                    cell.style.background = `linear-gradient(90deg, rgba(0, 85, 204, 0.75) ${percentage}%, rgba(255, 255, 255, 0) ${percentage}%)`;
+                    cell.innerHTML = `<span style="color: #0055cc">` + value + `</span>`;
+                    cell.style.background = `linear-gradient(90deg, rgba(0, 85, 204, 0.85) ${percentage}%, rgba(255, 255, 255, 0) ${percentage}%)`;
                     break;
                 case 4:
-                    cell.style.background = `linear-gradient(90deg, rgba(168, 68, 194, 0.75) ${percentage}%, rgba(255, 255, 255, 0) ${percentage}%)`;
+                    cell.innerHTML = `<span style="color: #a844c2">` + value + `</span>`;
+                    cell.style.background = `linear-gradient(90deg, rgba(168, 68, 194, 0.85) ${percentage}%, rgba(255, 255, 255, 0) ${percentage}%)`;
                     break;
                 case 5:
-                    cell.style.background = `linear-gradient(90deg, rgba(255, 47, 146, 0.75) ${percentage}%, rgba(255, 255, 255, 0) ${percentage}%)`;
+                    cell.innerHTML = `<span style="color: #ff2f92">` + value + `</span>`;
+                    cell.style.background = `linear-gradient(90deg, rgba(255, 47, 146, 0.85) ${percentage}%, rgba(255, 255, 255, 0) ${percentage}%)`;
                     break;
                 default:
                     break;
