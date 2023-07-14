@@ -3,7 +3,8 @@ form {
 }
 
 table {
-    padding: 1rem;
+    width: fit-content;
+    margin: 1rem;
 }
 
 table, th, td {
@@ -32,25 +33,37 @@ thead {
 }
 
 li {
-    flex-grow: 1;
+    width: 4rem;
     text-align: center;
 }
 
+.pagination {
+    display: inline-flex;
+}
+
 .page-item {
-    color: #0055cc;
 }
 
 .page-link {
-    color: black;
+    color: #0055cc;
+}
+
+.page-link:hover {
+    color: #0055cc;
 }
 
 .page-link:active, .page-link:focus {
-    color: white;
+    color: #ffffff;
     background-color: #0055cc;
 }
 
+.interval-selection {
+    color: #0055cc;
+}
+
 .signal {
-    padding: 0.25rem;
+    font-size: 0.75rem;
+    padding: 0.10rem 0.25rem 0.10rem 0.25rem;
     border-radius: 0.25rem;
     color: #ffffff;
 }
