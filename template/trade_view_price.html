@@ -4,93 +4,10 @@
     <title>Stock Screener</title>
     <meta charset="utf-8">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <style>
-        form {
-            margin: 2%;
-        }
-
-        table {
-            border-collapse: collapse;
-            padding: 2%;
-        }
-
-        table, th, td {
-            border: 0 solid black;
-        }
-
-        th, td {
-            padding: 10px;
-        }
-
-        th {
-            font-weight: bold;
-        }
-
-        tr {
-            text-align: center;
-        }
-
-        td {
-            font-family: Menlo, system-ui;
-            text-align: right;
-        }
-
-        thead {
-            color: #0055cc;
-        }
-
-        td:nth-child(4) {
-            color: #ff2f92;
-            text-align: right;
-        }
-
-        td:nth-child(5) {
-            color: #0055cc;
-            text-align: right;
-        }
-
-        td:nth-child(6) {
-            color: #ff2f92;
-            text-align: right;
-        }
-
-        td:nth-child(7) {
-            color: #0055cc;
-            text-align: right;
-        }
-
-        td:nth-child(8) {
-            color: #ff2f92;
-            text-align: right;
-        }
-
-        td:nth-child(9) {
-            color: #0055cc;
-            text-align: right;
-        }
-
-        td:nth-child(10) {
-            color: #ff2f92;
-            text-align: right;
-        }
-
-        td:nth-child(11) {
-            color: #0055cc;
-            text-align: right;
-        }
-
-        td:nth-child(12) {
-            color: #ff2f92;
-            text-align: right;
-        }
-
-        td:nth-child(13) {
-            color: #0055cc;
-            text-align: right;
-        }
-    </style>
+    <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='static/stock_style.css')}}">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script type="text/javascript" src="{{url_for('static', filename='static/stock.js')}}"></script>
 </head>
 <body>
 <header>
