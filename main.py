@@ -432,27 +432,12 @@ ticker_exchanges = {
         "AVGO", "TSLA", "PEP", "QQQ"]
     else "NYSE" for ticker in [
         "MSFT", "NVDA", "GOOGL", "TSM", "AMZN",
-        "META", "ORCL", "AMD", "ADBE", "QCOM",
-        "NFLX", "ASML", "AVGO", "VZ", "GS",
-        "JPM", "MS", "WFC", "BAC", "C",
-        "V", "MA", "AXP", "XOM", "CVX",
-        "TSLA", "MCD", "KO", "PEP", "PG",
-        "ABBV", "MRK", "LLY", "UNH", "PFE",
-        "JNJ", "QQQ"]}
-
-ticker_exchanges = {
-    ticker: "NASDAQ" if ticker in [
-        "MSFT", "NVDA", "GOOGL", "AMZN", "META",
-        "AMD", "ADBE", "QCOM", "NFLX", "ASML",
-        "AVGO", "TSLA", "PEP", "QQQ"]
-    else "NYSE" for ticker in [
-        "MSFT", "NVDA", "GOOGL", "TSM", "AMZN",
-        "META", "ORCL", "AMD", "ADBE", "QCOM",
-        "NFLX", "ASML", "AVGO", "VZ", "GS",
-        "JPM", "MS", "WFC", "BAC", "C",
-        "V", "MA", "AXP", "XOM", "CVX",
-        "TSLA", "MCD", "KO", "PEP", "PG",
-        "ABBV", "MRK", "LLY", "UNH", "PFE",
+        # "META", "ORCL", "AMD", "ADBE", "QCOM",
+        # "NFLX", "ASML", "AVGO", "VZ", "GS",
+        # "JPM", "MS", "WFC", "BAC", "C",
+        # "V", "MA", "AXP", "XOM", "CVX",
+        # "TSLA", "MCD", "KO", "PEP", "PG",
+        # "ABBV", "MRK", "LLY", "UNH", "PFE",
         "JNJ", "QQQ"]}
 
 interval_type = {
@@ -554,8 +539,8 @@ def prepare_tradingview(interval):
             current[1] = f"{latest_price:,.2f}"
             current[2] = ratting.get('RECOMMENDATION')
             current[3] = ratting.get('BUY')
-            current[4] = ratting.get('SELL')
-            current[5] = ratting.get('NEUTRAL')
+            current[4] = ratting.get('NEUTRAL')
+            current[5] = ratting.get('SELL')
 
         except Exception as e:
             print(f"Error retrieving data for {ticker} at {interval}: {e}")
@@ -565,7 +550,7 @@ def prepare_tradingview(interval):
     return res[1:]
 
 
-app = Flask(__name__, template_folder="template")
+app = Flask(__name__, template_folder="template", static_folder="template")
 
 
 @app.route("/query", methods=["GET", "POST"])
