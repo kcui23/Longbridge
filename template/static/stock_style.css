@@ -1,0 +1,76 @@
+form {
+    margin: 1rem;
+}
+
+table {
+    padding: 1rem;
+}
+
+table, th, td {
+    border: 0 solid black;
+}
+
+th, td {
+    padding: 0.125rem;
+}
+
+th {
+    font-weight: bold;
+}
+
+tr {
+    text-align: center;
+}
+
+td {
+    font-family: Menlo, system-ui;
+    text-align: right;
+}
+
+thead {
+    color: #0055cc;
+}
+
+li {
+    flex-grow: 1;
+    text-align: center;
+}
+
+.page-item {
+    color: #0055cc;
+}
+
+.page-link {
+    color: black;
+}
+
+.page-link:active, .page-link:focus {
+    color: white;
+    background-color: #0055cc;
+}
+
+.signal {
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    color: #ffffff;
+}
+
+.strong-buy {
+    background-color: #0055cc;
+}
+
+.buy {
+    background-color: #724fcb;
+}
+
+.neutral {
+    background-color: #a844c2;
+}
+
+.sell {
+    background-color: #d138b2;
+}
+
+.strong-sell {
+    background-color: #ff2f92;
+}
