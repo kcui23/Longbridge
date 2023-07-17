@@ -1,6 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 import time
+import concurrent.futures
 from longbridge.openapi import TradeContext, Config, OrderStatus, OrderType, OrderSide, Market, TimeInForceType, QuoteContext
 from tradingview_ta import TA_Handler, Interval
 
@@ -92,6 +93,28 @@ def get_stock_positions():
     return ctx.stock_positions()
 
 
+def auto_trade(ticker, interval):
+    try:
+        handler = TA_Handler(
+            symbol=ticker,
+            exchange=ticker_exchanges.get(ticker),
+            screener="america",
+        )
+
+        handler.interval = intervals.get(interval)
+        analysis = handler.get_analysis()
+
+        if analysis.summary["RECOMMENDATION"] == "STRONG_BUY":
+            print(datetime.now(), ticker, analysis.summary["RECOMMENDATION"], analysis.indicators["close"])
+        elif analysis.summary["RECOMMENDATION"] == "STRONG_SELL":
+            print(datetime.now(), ticker, analysis.summary["RECOMMENDATION"], analysis.indicators["close"])
+        # else:
+        # print(ticker, analysis.summary)
+
+    except Exception as e:
+        print(f"Error retrieving data for: {e}: {ticker}")
+
+
 ticker_exchanges = {
     ticker: "NASDAQ" if ticker in [
         "MSFT", "NVDA", "GOOGL", "AMZN", "META",
@@ -116,32 +139,14 @@ intervals = {
     "1d": Interval.INTERVAL_1_DAY,
 }
 
-
-def auto_trade(ticker, interval):
-    while True:
-        try:
-            handler = TA_Handler(
-                symbol=ticker,
-                exchange=ticker_exchanges.get(ticker),
-                screener="america",
-            )
-
-            handler.interval = intervals.get(interval)
-            analysis = handler.get_analysis()
-
-            if analysis.summary["RECOMMENDATION"] == "STRONG_BUY":
-                print(datetime.now(), ticker, analysis.summary["RECOMMENDATION"], analysis.indicators["close"])
-            elif analysis.summary["RECOMMENDATION"] == "STRONG_SELL":
-                print(datetime.now(), ticker, analysis.summary["RECOMMENDATION"], analysis.indicators["close"])
-        except Exception as e:
-            print(f"Error retrieving data for: {e}")
-
-        time.sleep(30)
-
-
 ctx = init()
 
-auto_trade("NVDA", "1m")
+while True:
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [executor.submit(auto_trade, ticker, "1m") for ticker in ticker_exchanges]
+        concurrent.futures.wait(futures)
+
+    time.sleep(10)
 
 # print(get_max_purchase_quantity("VZ.US"))
 # withdraw_order("865278546859069440")
