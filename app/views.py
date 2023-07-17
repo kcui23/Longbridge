@@ -5,7 +5,7 @@ from . import models as md
 
 
 def prepare_tradingview(interval):
-    res = np.array([["APPL", "", "", "", "", ""]])
+    res = []
 
     for ticker, exchange in md.ticker_exchanges.items():
         handler = TA_Handler(
@@ -15,7 +15,16 @@ def prepare_tradingview(interval):
         )
 
         handler.interval = md.intervals.get(interval)
-        current = [ticker, "", "", "", "", ""]
+        current = {
+            'ticker': ticker,
+            'latest_price': '',
+            'latest_change': '',
+            'recommend': '',
+            'buy': '',
+            'neutral': '',
+            'sell': '',
+            'indicators': {}
+        }
 
         try:
             now = datetime.now()
@@ -26,17 +35,19 @@ def prepare_tradingview(interval):
             latest_price = analysis.indicators["close"]
             latest_change = analysis.indicators["change"]
             ratting = analysis.summary
-            current[1] = f"{latest_price:,.2f}" + f" {latest_change:,.2f}"
-            current[2] = ratting.get('RECOMMENDATION')
-            current[3] = ratting.get('BUY')
-            current[4] = ratting.get('NEUTRAL')
-            current[5] = ratting.get('SELL')
+            current['latest_price'] = f"{latest_price:,.2f}"
+            current['latest_change'] = f"{latest_change:,.2f}"
+            current['recommend'] = ratting.get('RECOMMENDATION')
+            current['buy'] = ratting.get('BUY')
+            current['neutral'] = ratting.get('NEUTRAL')
+            current['sell'] = ratting.get('SELL')
+            current['indicators'] = analysis.indicators
         except Exception as e:
             print(f"Error retrieving data for {ticker} at {interval}: {e}")
 
-        res = np.append(res, [current], axis=0)
+        res.append(current)
 
-    return res[1:]
+    return res
 
 
 def prepare_web_content(trade_date):
