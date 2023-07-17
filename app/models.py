@@ -8,6 +8,35 @@ import yfinance as yf
 import ta
 import pendulum
 from datetime import datetime, timedelta
+from tradingview_ta import Interval
+
+ticker_exchanges = {
+    ticker: "NASDAQ" if ticker in [
+        "MSFT", "NVDA", "GOOGL", "AMZN", "META",
+        "AMD", "ADBE", "QCOM", "NFLX", "ASML",
+        "AVGO", "TSLA", "PEP", "QQQ"]
+    else "NYSE" for ticker in [
+        "MSFT", "NVDA", "GOOGL", "TSM", "AMZN",
+        "META", "ORCL", "AMD", "ADBE", "QCOM",
+        "NFLX", "ASML", "AVGO", "VZ", "GS",
+        "JPM", "MS", "WFC", "BAC", "C",
+        "V", "MA", "AXP", "XOM", "CVX",
+        "TSLA", "MCD", "KO", "PEP", "PG",
+        "ABBV", "MRK", "LLY", "UNH", "PFE",
+        "JNJ", "QQQ"]}
+
+interval_type = {
+    "1m": 3, "15m": 30, "30m": 59, "60m": 180, "1d": 365
+}
+
+intervals = {
+    "1m": Interval.INTERVAL_1_MINUTE,
+    "5m": Interval.INTERVAL_5_MINUTES,
+    "15m": Interval.INTERVAL_15_MINUTES,
+    "30m": Interval.INTERVAL_30_MINUTES,
+    "1h": Interval.INTERVAL_1_HOUR,
+    "1d": Interval.INTERVAL_1_DAY,
+}
 
 
 def print_realtime_ratting(df):
@@ -364,7 +393,7 @@ def plot_stock_screener(df, ticker):
 
     plots = [vwap, macd_DIF, macd_DEM, macd_Histogram, rsi, crsi, kdj_k, kdj_d, kdj_j]
 
-    file_name = "images/" + distinguish_interval(df) + " " + ticker + " " + str(df["Datetime"][0])[:10] + " " + str(df["Datetime"][len(df) - 1])[:10]
+    file_name = "../images/" + distinguish_interval(df) + " " + ticker + " " + str(df["Datetime"][0])[:10] + " " + str(df["Datetime"][len(df) - 1])[:10]
 
     mpf.plot(
         df, type="candle", ax=ax1, style=s, addplot=plots,
@@ -391,14 +420,21 @@ def get_df_interval(ticker, trade_date, interval, days):
     start_time = pendulum.parse(start_date + " 00:00:00")
     end_time = pendulum.parse(trade_date + " 23:59:59")
 
-    df = yf.download(ticker, start=start_time, end=end_time, interval=interval, progress=False)
-    if interval == "1m":
-        df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
-    else:
-        df.index = df.index.tz_localize("UTC")
-        df.index = df.index.tz_convert("US/Eastern")
+    try:
+        df = yf.download(ticker, start=start_time, end=end_time, interval=interval, progress=False)
 
-    df = calculate_df(df)
-    df = find_signals(df)
+        if interval == "1m":
+            df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
+        else:
+            df.index = df.index.tz_localize("UTC")
+            df.index = df.index.tz_convert("US/Eastern")
 
-    return df
+        df = calculate_df(df)
+        df = find_signals(df)
+
+        return df
+    except Exception as e:
+        print(f"Error retrieving data for: {e}: {ticker}")
+
+
+# print(get_df_interval("MSFT", "2023-07-17", "1m", 3))
