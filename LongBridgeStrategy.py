@@ -1,7 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
 import time
-import concurrent.futures
 from longbridge.openapi import TradeContext, Config, OrderStatus, OrderType, OrderSide, Market, TimeInForceType
 from tradingview_ta import TA_Handler
 from app import models as md
@@ -105,25 +104,29 @@ def auto_trade(ticker, interval):
         handler.interval = md.intervals.get(interval)
         analysis = handler.get_analysis()
 
-        if analysis.summary["RECOMMENDATION"] == "STRONG_BUY":
+        today_string = datetime.now().strftime("%Y-%m-%d")
+        df = md.get_df_interval(ticker, today_string, "1m", 2)
+
+        buy_index = df["BuyIndex"][len(df) - 1]
+
+        if analysis.summary["RECOMMENDATION"] == "STRONG_BUY" and buy_index == "PotentialBuy":
             print(datetime.now(), ticker, analysis.summary["RECOMMENDATION"], analysis.indicators["close"])
-        elif analysis.summary["RECOMMENDATION"] == "STRONG_SELL":
+        elif analysis.summary["RECOMMENDATION"] == "STRONG_SELL" and buy_index == "PotentialBuy":
             print(datetime.now(), ticker, analysis.summary["RECOMMENDATION"], analysis.indicators["close"])
         # else:
-        # print(ticker, analysis.summary)
+        #     print(f"{ticker}: {analysis.summary['RECOMMENDATION']} {analysis.indicators['close']}")
 
     except Exception as e:
-        print(f"Error retrieving data for: {e}: {ticker}")
+        print(f"Error ({e}): {ticker}")
 
 
 ctx = init()
 
 while True:
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(auto_trade, ticker, "1d") for ticker in md.ticker_exchanges]
-        concurrent.futures.wait(futures)
+    for ticker, _ in md.ticker_exchanges.items():
+        auto_trade(ticker, "1m")
 
-    time.sleep(10)
+    time.sleep(20)
 
 # print(get_max_purchase_quantity("VZ.US"))
 # withdraw_order("865278546859069440")
