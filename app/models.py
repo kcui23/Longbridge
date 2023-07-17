@@ -20,10 +20,11 @@ ticker_exchanges = {
         "META", "ORCL", "AMD", "ADBE", "QCOM",
         "NFLX", "ASML", "AVGO", "VZ", "GS",
         "JPM", "MS", "WFC", "BAC", "C",
-        "V", "MA", "AXP", "XOM", "CVX",
-        "TSLA", "MCD", "KO", "PEP", "PG",
-        "ABBV", "MRK", "LLY", "UNH", "PFE",
-        "JNJ", "QQQ"]}
+        "V", "MA", "AXP", "TSLA", "QQQ"
+        # "MCD", "KO", "PEP", "PG", "ABBV",
+        # "MRK", "LLY", "UNH", "PFE", "JNJ",
+        # "XOM", "CVX",
+    ]}
 
 interval_type = {
     "1m": 3, "15m": 30, "30m": 59, "60m": 180, "1d": 365
@@ -435,6 +436,3 @@ def get_df_interval(ticker, trade_date, interval, days):
         return df
     except Exception as e:
         print(f"Error retrieving data for: {e}: {ticker}")
-
-
-# print(get_df_interval("MSFT", "2023-07-17", "1m", 3))
