@@ -1,204 +1,155 @@
-import pandas as pd
-import yfinance as yf
-import ta
-import pendulum
 from datetime import datetime
-import sys
+from decimal import Decimal
+import time
+from longbridge.openapi import TradeContext, Config, OrderStatus, OrderType, OrderSide, Market, TimeInForceType, QuoteContext
+from tradingview_ta import TA_Handler, Interval
 
 
-def print_realtime_ratting(df):
-    print("Datetime\t\t\tDIR\t\tPrice\tRSI\t\tCCI")
-    for i in range(len(df)):
-        current = df["BuyIndex"][i]
-        if current == "Buy" or current == "PotentialBuy":
-            print("%s\t\033[31mBuy   \t%.2f\033[0m\t%5.2f\t%5.2f" % (
-                df["Datetime"][i], df["Low"][i], df["RSI"][i], df["CCI"][i]))
-        elif current == "Sell" or current == "PotentialSell":
-            print("%s\t\033[34mSell  \t%.2f\033[0m\t%5.2f\t%5.2f" % (
-                df["Datetime"][i], df["High"][i], df["RSI"][i], df["CCI"][i]))
+def init():
+    config = Config.from_env()
+    return TradeContext(config)
 
 
-def calculate_commission(price, position, direction):
-    # Long Bridge commission free
-    res = max(1, 0.005 * position) + 0.003 * position
-
-    if direction == "Sell":
-        res += max(0.01, 0.000008 * price * position) + min(7.27, max(0.01, 0.000145 * position))
-
-    return res
+def get_max_purchase_quantity(ticker):
+    return ctx.estimate_max_purchase_quantity(
+        symbol=ticker,
+        order_type=OrderType.LO,
+        side=OrderSide.Buy)
 
 
-def calculate_buy_position(price, balance, direction):
-    for i in range(int(balance / price) + 1, -1, -1):
-        rest = balance - price * i - calculate_commission(price, i, direction)
-        if 0 <= rest < price:
-            return i
+def get_history_order(ticker):
+    resp = ctx.history_executions(
+        symbol=ticker,
+        start_at=datetime(2023, 1, 1),
+        end_at=datetime.now(),
+    )
 
-    return 0
+    print("ID\t\t\t\t\tTrade done at\t\tTicker\tPrice\tQuantity")
+    for i in range(len(resp)):
+        current = resp[i]
+        print("%s\t%s\t%s\t%6s\t%3s" % (current.order_id, current.trade_done_at, current.symbol, f"{current.price:,.2f}", current.quantity))
 
-
-def find_signals(df):
-    # Mark all potential buy / sell timings
-    df["BuyIndex"] = ""
-    flag_can_start = False  # Can visit df["DIF"][i - 1]
-
-    for i in range(len(df)):
-
-        DIF = df["DIF"][i]
-        DEM = df["DEM"][i]
-        Histogram = df["Histogram"][i]
-        RSI = df["RSI"][i]
-        K = df["K"][i]
-        D = df["D"][i]
-        J = df["J"][i]
-
-        if flag_can_start:
-            DIF_last = df["DIF"][i - 1]
-            DEM_last = df["DEM"][i - 1]
-
-            if (DIF > DEM and DIF_last < DEM_last) and (DIF < 0 and DEM < 0) and (RSI <= 100) and (J >= K and J >= D):
-                df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
-            elif (DIF < DEM and DIF_last > DEM_last) and (DIF > 0 and DEM > 0) and (RSI >= 20) and (J <= K and J <= D):
-                df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialSell"
-            else:
-                df.iloc[i, df.columns.get_loc("BuyIndex")] = "Hold"
-
-        if not flag_can_start and pd.notna(DIF) and pd.notna(DEM):
-            flag_can_start = True
-            continue
-
-    return df
+    return resp
 
 
-def print_trade(df, principal):
-    df["Balance"] = principal
-    df["Position"] = 0
-    df["Commission"] = 0.00
-    df["TotalAssets"] = 0.00
-
-    for i in range(len(df)):
-        df.iloc[i, df.columns.get_loc("Balance")] = df["Balance"][i - 1]
-        df.iloc[i, df.columns.get_loc("Position")] = df["Position"][i - 1]
-        position = df["Position"][i]
-        balance = df["Balance"][i]
-        direction = df["BuyIndex"][i]
-
-        if direction == "PotentialBuy" and position == 0:
-            current_price = df["Low"][i]
-            direction = "Buy"
-            position = calculate_buy_position(current_price, balance, direction)
-            commission = calculate_commission(current_price, position, direction)
-            balance = balance - current_price * position - commission
-
-            df.iloc[i, df.columns.get_loc("Position")] = position
-            df.iloc[i, df.columns.get_loc("Commission")] = commission
-            df.iloc[i, df.columns.get_loc("Balance")] = balance
-            df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
-        elif direction == "PotentialSell" and position > 0:
-            last_buy_price = sys.float_info.max
-            for j in range(i - 1, -1, -1):
-                if df["BuyIndex"][j] == "Buy":
-                    last_buy_price = df["Low"][j]
-                    break
-
-            current_price = df["High"][i]
-            if current_price >= last_buy_price * 1.01:
-                direction = "Sell"
-                commission = calculate_commission(current_price, position, direction)
-                df.iloc[i, df.columns.get_loc("Position")] = 0
-                df.iloc[i, df.columns.get_loc("Balance")] = balance + current_price * position - commission
-                df.iloc[i, df.columns.get_loc("Commission")] = commission
-                df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
-
-        df.iloc[i, df.columns.get_loc("TotalAssets")] = \
-            df["Balance"][i] \
-                if df["Position"][i] == 0 else df["Balance"][i] + \
-                                               df["Close"][i] * \
-                                               df["Position"][i]
-
-    return df
+def submit_order(ticker, quantity, price, direction):
+    if direction == "Buy":
+        return ctx.submit_order(
+            ticker,
+            OrderType.LO,
+            OrderSide.Buy,
+            quantity,
+            TimeInForceType.Day,
+            submitted_price=Decimal(price),
+            remark=""
+        )
+    elif direction == "Sell":
+        return ctx.submit_order(
+            ticker,
+            OrderType.LO,
+            OrderSide.Sell,
+            quantity,
+            TimeInForceType.Day,
+            submitted_price=Decimal(price),
+            remark=""
+        )
 
 
-def print_trade_records(df):
-    print("\nDatetime\t\t\tDIR\t\tPrice\tPSN\t\tCMS\t\tBalance\t\tTotal")
-    for i in range(len(df)):
-        direction = df["BuyIndex"][i]
+def get_today_order(ticker):
+    resp = ctx.today_orders(
+        symbol=ticker,
+        status=[OrderStatus.Filled, OrderStatus.New],
+        side=OrderSide.Buy,
+        market=Market.US,
+    )
 
-        if direction == "Buy" or direction == "Sell":
-            print("%s\t%-4s\t%5.2f\t%4d\t%4.2f\t%10s\t%10s" % (
-                df["Datetime"][i],
-                df["BuyIndex"][i],
-                df["Low"][i] if df["BuyIndex"][i] == "Buy" else df["High"][i],
-                df["Position"][i] if df["Position"][i] > 0 else df["Position"][i - 1],
-                df["Commission"][i],
-                f"{df['Balance'][i]:,.2f}",
-                f"{df['TotalAssets'][i]:,.2f}"))
-
-    return df["TotalAssets"][len(df) - 1]
+    return resp
 
 
-def calculate_df(df):
-    # Convert date column to datetime format
-    df["Datetime"] = pd.to_datetime(df.index)
-
-    # Calculate MACD, RSI, KDJ, CCI using ta library
-    df["DIF"] = ta.trend.MACD(df["Close"], window_slow=26, window_fast=12).macd()
-    df["DEM"] = df["DIF"].ewm(span=9).mean()
-    df["Histogram"] = df["DIF"] - df["DEM"].ewm(span=9).mean()
-
-    df["KDJ"] = ta.momentum.StochasticOscillator(df["High"], df["Low"], df["Close"]).stoch()
-    df["RSI"] = ta.momentum.RSIIndicator(df["Close"], window=14).rsi()
-    df["K"] = ta.momentum.StochasticOscillator(df["High"], df["Low"], df["Close"], window=9).stoch()
-    df["D"] = df["K"].ewm(com=2).mean()
-    df["J"] = 3 * df["K"] - 2 * df["D"]
-
-    df["CCI"] = ta.trend.CCIIndicator(df["High"], df["Low"], df["Close"], window=20, constant=0.015).cci()
-
-    return df
+def get_order_details(order_id):
+    return ctx.order_detail(
+        order_id=order_id
+    )
 
 
-def plotOneDay(ticker, start_time, end_time, principal):
-    # get data using download method
-    df = yf.download(ticker, start=start_time, end=end_time, interval="1d", progress=False)
-    df = calculate_df(df)
-    df = find_signals(df)
-    df = print_trade(df, principal)
-
-    return df
+def amend_order(order_id, quantity, price):
+    ctx.replace_order(
+        order_id=order_id,
+        quantity=quantity,
+        price=Decimal(price)
+    )
 
 
-def plotOneMinute(ticker, trade_day, principal):
-    # get data using download method
-    start_time = pendulum.parse(trade_day + " 00:08:00")
-    end_time = pendulum.parse(trade_day + " 23:59:59")
-
-    # convert the index to Eastern Time and remove the timezone
-    df = yf.download(ticker, start=start_time, end=end_time, interval="1m", progress=False)
-    df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
-    df = calculate_df(df)
-    df = find_signals(df)
-    df = print_trade(df, principal)
-
-    return df
+def withdraw_order(order_id):
+    ctx.cancel_order(order_id)
 
 
-tickers = [
-    "MSFT", "NVDA", "TSM", "GOOGL", "META", "ORCL", "AMZN", "QCOM", "AMD", "VZ", "NFLX", "ASML",
-    "JPM", "GS", "MS", "WFC", "BAC", "V", "MA", "AXP",
-    "CVX", "XOM", "TSLA", "SPLG"
-]
+def get_account_balance():
+    return ctx.account_balance()
 
-today = datetime.today()
-date_string = today.strftime("%Y-%m-%d")
-date_string_today = today.strftime("%Y-%m-%d")
-principal = 10000
 
-# For all stocks in the list
-for x in tickers:
-    now = datetime.now()
-    print("\n%-5s %s" % (x, now.strftime("%d/%m/%y %H:%M:%S")))
-    df = plotOneMinute(x, "2023-07-03", principal)
-    print_realtime_ratting(df)
+def get_stock_positions():
+    return ctx.stock_positions()
 
-    df = plotOneDay(x, "2020-01-01", date_string_today, principal)
-    print_realtime_ratting(df)
+
+ticker_exchanges = {
+    ticker: "NASDAQ" if ticker in [
+        "MSFT", "NVDA", "GOOGL", "AMZN", "META",
+        "AMD", "ADBE", "QCOM", "NFLX", "ASML",
+        "AVGO", "TSLA", "PEP", "QQQ"]
+    else "NYSE" for ticker in [
+        "MSFT", "NVDA", "GOOGL", "TSM", "AMZN",
+        "META", "ORCL", "AMD", "ADBE", "QCOM",
+        "NFLX", "ASML", "AVGO", "VZ", "GS",
+        "JPM", "MS", "WFC", "BAC", "C",
+        "V", "MA", "AXP", "XOM", "CVX",
+        "TSLA", "MCD", "KO", "PEP", "PG",
+        "ABBV", "MRK", "LLY", "UNH", "PFE",
+        "JNJ", "QQQ"]}
+
+intervals = {
+    "1m": Interval.INTERVAL_1_MINUTE,
+    "5m": Interval.INTERVAL_5_MINUTES,
+    "15m": Interval.INTERVAL_15_MINUTES,
+    "30m": Interval.INTERVAL_30_MINUTES,
+    "1h": Interval.INTERVAL_1_HOUR,
+    "1d": Interval.INTERVAL_1_DAY,
+}
+
+
+def auto_trade(ticker, interval):
+    while True:
+        try:
+            handler = TA_Handler(
+                symbol=ticker,
+                exchange=ticker_exchanges.get(ticker),
+                screener="america",
+            )
+
+            handler.interval = intervals.get(interval)
+            analysis = handler.get_analysis()
+
+            if analysis.summary["RECOMMENDATION"] == "STRONG_BUY":
+                print(datetime.now(), ticker, analysis.summary["RECOMMENDATION"], analysis.indicators["close"])
+            elif analysis.summary["RECOMMENDATION"] == "STRONG_SELL":
+                print(datetime.now(), ticker, analysis.summary["RECOMMENDATION"], analysis.indicators["close"])
+        except Exception as e:
+            print(f"Error retrieving data for: {e}")
+
+        time.sleep(30)
+
+
+ctx = init()
+
+auto_trade("NVDA", "1m")
+
+# print(get_max_purchase_quantity("VZ.US"))
+# withdraw_order("865278546859069440")
+# print(get_today_order("NVDA.US"))
+# print(submit_order("TSM.US", 100, "0.99", "Buy"))
+# 865278546859069440
+# get_history_order("")
+# print(get_order_details("864157105848643584"))
+# print(get_today_order("TSM.US"))
+# print(get_account_balance())
+# print(get_stock_positions())
