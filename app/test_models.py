@@ -15,9 +15,9 @@ def test_single_stock(ticker):
 
 
 def test_all_stocks(trade_day, principal):
-    for ticker, _ in md.interval_type.items():
-        for key, value in md.interval_type.items():
-            df = md.get_df_interval(ticker, trade_day, key, value)
+    for ticker, _ in md.ticker_exchanges.items():
+        for interval, value in md.interval_type.items():
+            df = md.get_df_interval(ticker, trade_day, interval, value)
             df = md.paper_trade(df, principal)
             md.print_realtime_ratting(df)
             md.plot_stock_screener(df, ticker)
@@ -37,5 +37,5 @@ date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000.00
 
 if __name__ == "__main__":
-    test_single_stock("NVDA")
+    # test_single_stock("NVDA")
     test_all_stocks("2023-07-17", principal)
