@@ -87,3 +87,7 @@ li {
 .strong-sell {
     background-color: #ff2f92;
 }
+
+.hidden {
+    display: none;
+}
