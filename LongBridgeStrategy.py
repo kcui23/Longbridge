@@ -2,8 +2,9 @@ from datetime import datetime
 from decimal import Decimal
 import time
 import concurrent.futures
-from longbridge.openapi import TradeContext, Config, OrderStatus, OrderType, OrderSide, Market, TimeInForceType, QuoteContext
-from tradingview_ta import TA_Handler, Interval
+from longbridge.openapi import TradeContext, Config, OrderStatus, OrderType, OrderSide, Market, TimeInForceType
+from tradingview_ta import TA_Handler
+from app import models as md
 
 
 def init():
@@ -97,11 +98,11 @@ def auto_trade(ticker, interval):
     try:
         handler = TA_Handler(
             symbol=ticker,
-            exchange=ticker_exchanges.get(ticker),
+            exchange=md.ticker_exchanges.get(ticker),
             screener="america",
         )
 
-        handler.interval = intervals.get(interval)
+        handler.interval = md.intervals.get(interval)
         analysis = handler.get_analysis()
 
         if analysis.summary["RECOMMENDATION"] == "STRONG_BUY":
@@ -115,35 +116,11 @@ def auto_trade(ticker, interval):
         print(f"Error retrieving data for: {e}: {ticker}")
 
 
-ticker_exchanges = {
-    ticker: "NASDAQ" if ticker in [
-        "MSFT", "NVDA", "GOOGL", "AMZN", "META",
-        "AMD", "ADBE", "QCOM", "NFLX", "ASML",
-        "AVGO", "TSLA", "PEP", "QQQ"]
-    else "NYSE" for ticker in [
-        "MSFT", "NVDA", "GOOGL", "TSM", "AMZN",
-        "META", "ORCL", "AMD", "ADBE", "QCOM",
-        "NFLX", "ASML", "AVGO", "VZ", "GS",
-        "JPM", "MS", "WFC", "BAC", "C",
-        "V", "MA", "AXP", "XOM", "CVX",
-        "TSLA", "MCD", "KO", "PEP", "PG",
-        "ABBV", "MRK", "LLY", "UNH", "PFE",
-        "JNJ", "QQQ"]}
-
-intervals = {
-    "1m": Interval.INTERVAL_1_MINUTE,
-    "5m": Interval.INTERVAL_5_MINUTES,
-    "15m": Interval.INTERVAL_15_MINUTES,
-    "30m": Interval.INTERVAL_30_MINUTES,
-    "1h": Interval.INTERVAL_1_HOUR,
-    "1d": Interval.INTERVAL_1_DAY,
-}
-
 ctx = init()
 
 while True:
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(auto_trade, ticker, "1m") for ticker in ticker_exchanges]
+        futures = [executor.submit(auto_trade, ticker, "1d") for ticker in md.ticker_exchanges]
         concurrent.futures.wait(futures)
 
     time.sleep(10)
