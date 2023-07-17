@@ -1,10 +1,10 @@
 from flask import Flask, render_template, request
 from app import views
 
-myApp = Flask(__name__, template_folder="app/templates/", static_folder="app/static/")
+app = Flask(__name__, template_folder="app/templates/", static_folder="app/static/")
 
 
-@myApp.route("/query", methods=["GET", "POST"])
+@app.route("/queryPrices", methods=["GET", "POST"])
 def handle_query():
     if request.method == "POST":
         trade_date = request.form["trade_date"]
@@ -13,7 +13,7 @@ def handle_query():
         return render_template("trade_view_price.html")
 
 
-@myApp.route("/queryTradingview", methods=["GET", "POST"])
+@app.route("/queryTradingview", methods=["GET", "POST"])
 def handle_tradingview():
     if request.method == "POST":
         interval = request.form["interval"]
@@ -22,13 +22,13 @@ def handle_tradingview():
         return render_template("trade_view_screener.html")
 
 
-@myApp.route("/")
+@app.route("/")
 def home():
     handle_query()
     handle_tradingview()
 
 
 if __name__ == "__main__":
-    myApp.run(host="localhost", port=8088, debug=None)
+    app.run(host="localhost", port=8088, debug=None)
     # app.run(host="194.233.83.43", port=8088, debug=None)
     # app.run(host="109.123.236.116", port=8088, debug=None)
