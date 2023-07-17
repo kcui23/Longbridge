@@ -119,9 +119,9 @@ def find_signals(df):
             DIF_last = df["DIF"][i - 1]
             DEM_last = df["DEM"][i - 1]
 
-            if (DIF > DEM and DIF_last < DEM_last) and (J >= K and J >= D) and CRSI <= 70:
+            if (DIF > DEM and DIF_last < DEM_last) and (J >= K and J >= D):
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
-            elif (DIF < DEM and DIF_last > DEM_last) and (J <= K and J <= D) and CRSI >= 40:
+            elif (DIF < DEM and DIF_last > DEM_last) and (J <= K and J <= D):
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialSell"
             else:
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "Hold"
