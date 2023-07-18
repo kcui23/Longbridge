@@ -27,7 +27,7 @@ ticker_exchanges = {
     ]}
 
 interval_type = {
-    "1m": 3, "5m": 3, "15m": 30, "30m": 59, "60m": 180, "1d": 365
+    "1m": 3, "5m": 10, "15m": 30, "30m": 59, "60m": 180, "1d": 365
 }
 
 intervals = {
@@ -80,7 +80,7 @@ def print_trade_records(df):
 
 
 def distinguish_interval(df):
-    res = {60: "1m", 900: "15m", 1800: "30m", 3600: "60m", 86400: "1d"}
+    res = {60: "1m", 300: "5m", 900: "15m", 1800: "30m", 3600: "60m", 86400: "1d"}
 
     datetime_first = datetime.strptime(str(df["Datetime"][0])[:19], "%Y-%m-%d %H:%M:%S")
     datetime_second = datetime.strptime(str(df["Datetime"][1])[:19], "%Y-%m-%d %H:%M:%S")
