@@ -1,6 +1,7 @@
 import numpy as np
 from datetime import datetime
 from tradingview_ta import TA_Handler
+import smtplib
 from . import models as md
 
 
@@ -95,6 +96,16 @@ def prepare_web_content(trade_date):
 
 
 def email_notification(ticker, interval, email):
+    def send_email(receiver_email, message):
+        sender_email = "asta_test_lightwing@outlook.com"
+        password = "04^kI3-CYGbhL-b%SHDL"
+
+        server = smtplib.SMTP("smtp-mail.outlook.com", 587)
+        server.starttls()
+        server.login(sender_email, password)
+        server.sendmail(sender_email, receiver_email, message)
+        server.quit()
+
     try:
         handler = TA_Handler(
             symbol=ticker,
@@ -122,15 +133,14 @@ def email_notification(ticker, interval, email):
             elif signal_buy and signal_sell:
                 break
 
-        # print(f"{ticker}: {price_close}, {signal_buy}: {price_buy}, {signal_sell}: {price_sell}")
-
         if analysis.summary["RECOMMENDATION"] == "STRONG_BUY" and (signal_buy and price_close <= price_buy):
             print(datetime.now(), ticker, analysis.summary["RECOMMENDATION"], price_close)
 
-        # if analysis.summary["RECOMMENDATION"] == "STRONG_SELL" and (signal_sell and price_close >= price_sell):
-        #     print(datetime.now(), ticker, analysis.summary["RECOMMENDATION"], price_close)
-        # else:
-        #     print(f"{ticker}: {analysis.summary['RECOMMENDATION']} {analysis.indicators['close']}")
+            subject = f"Strong buy {ticker} at ${price_close:,.2f}"
+            body = f"Interval: {interval}\nLast updated: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\nBelow: ${price_buy :,.2f}"
+            message = f"Subject: {subject}\n\n{subject}\n{body}"
+
+            send_email(email, message)
 
     except Exception as e:
         print(f"Error ({e}): {ticker}")
