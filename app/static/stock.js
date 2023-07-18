@@ -1,10 +1,3 @@
-function setInterval(value) {
-    let input = document.getElementById("interval");
-    input.value = value;
-    let form = document.getElementById("pickInterval");
-    form.submit();
-}
-
 const changeBuySignals = () => {
     const rows = document.querySelectorAll("#stockScreenerRating tbody tr:not(.hidden)");
 
@@ -95,3 +88,29 @@ function toggleDetails(event) {
     let detailsRow = row.nextElementSibling;
     detailsRow.classList.toggle("hidden");
 }
+
+
+function setInterval(value) {
+    let input = document.getElementById("interval");
+    input.value = value;
+    let form = document.getElementById("pickInterval");
+    form.submit();
+}
+
+function setIntervalAndEmail() {
+    let form = document.getElementById("startEmailNotification");
+    const emailInput = document.querySelector("#email");
+    const email = emailInput.value;
+    const emailRegex = /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/;
+
+    if (!emailRegex.test(email)) {
+        alert("Please enter a valid email\nThank you");
+        emailInput.focus();
+        return null;
+    } else {
+        alert("You will receive notifications from now on");
+        console.log(email);
+        form.submit();
+    }
+}
+
