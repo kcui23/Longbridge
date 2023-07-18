@@ -129,7 +129,7 @@ def email_notification(ticker, interval, email):
             if current == "PotentialBuy" and not signal_buy:
                 signal_buy, price_buy, datetime_buy = True, price, datetime_last
             elif current == "PotentialSell" and not signal_sell:
-                signal_sell, price_sell, datetime_buy = True, price, datetime_last
+                signal_sell, price_sell, datetime_sell = True, price, datetime_last
             elif signal_buy and signal_sell:
                 break
 
@@ -139,7 +139,7 @@ def email_notification(ticker, interval, email):
             print(f"{ticker:5s} Sell {datetime_sell} {price_sell:,.2f}")
 
         recommendation = analysis.summary["RECOMMENDATION"]
-        if (recommendation == "STRONG_BUY" or recommendation == "BUY") and (signal_buy and price_close <= price_buy):
+        if (recommendation == "STRONG_BUY") and (signal_buy and price_close <= price_buy):
             subject = f"Strong buy {ticker} at ${price_close:,.2f}"
             body = f"Interval: {interval}\nLast updated: {datetime_buy}\nBelow: ${price_buy :,.2f}"
             message = f"Subject: {subject}\n\n{subject}\n{body}"

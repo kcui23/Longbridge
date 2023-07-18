@@ -1,3 +1,10 @@
+function setInterval(value) {
+    let input = document.getElementById("interval");
+    input.value = value;
+    let form = document.getElementById("pickInterval");
+    form.submit();
+}
+
 const changeBuySignals = () => {
     const rows = document.querySelectorAll("#stockScreenerRating tbody tr:not(.hidden)");
 
@@ -89,13 +96,6 @@ function toggleDetails(event) {
     detailsRow.classList.toggle("hidden");
 }
 
-
-function setInterval(value) {
-    let input = document.getElementById("interval");
-    input.value = value;
-    let form = document.getElementById("pickInterval");
-    form.submit();
-}
 
 function setIntervalAndEmail() {
     let form = document.getElementById("startEmailNotification");
