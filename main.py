@@ -30,8 +30,6 @@ def start_email_notification():
         email = request.form["email"]
         interval = request.form["interval"]
 
-        print(email, interval)
-
         while True:
             for ticker, _ in md.ticker_exchanges.items():
                 views.email_notification(ticker, interval, email)
