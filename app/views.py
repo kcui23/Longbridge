@@ -117,15 +117,12 @@ def email_notification(ticker, interval, email):
         analysis = handler.get_analysis()
 
         today_string = datetime.now().strftime("%Y-%m-%d")
-        print(ticker, today_string, interval, md.interval_type.get(interval))
         df = md.get_df_interval(ticker, today_string, interval, md.interval_type.get(interval))
 
         signal_buy, price_buy, datetime_buy = False, 0.00, ""
         signal_sell, price_sell, datetime_sell = False, 0.00, ""
         price_close = analysis.indicators["close"]
         recent_cycle = 26
-
-        # print(f"{datetime.now()} {ticker} {interval} {analysis.summary['RECOMMENDATION']}")
 
         for i in range(len(df) - 1, max(len(df) - recent_cycle, -1), -1):
             current, price, datetime_last = df["BuyIndex"][i], df["Close"][i], df["Datetime"][i]
@@ -136,9 +133,13 @@ def email_notification(ticker, interval, email):
             elif signal_buy and signal_sell:
                 break
 
-        if analysis.summary["RECOMMENDATION"] == "STRONG_BUY" and (signal_buy and price_close <= price_buy):
-            print(datetime.now(), ticker, analysis.summary["RECOMMENDATION"], price_close)
+        if signal_buy:
+            print(f"{ticker:5s} Buy  {datetime_buy} {price_buy:,.2f}")
+        if signal_sell:
+            print(f"{ticker:5s} Sell {datetime_sell} {price_sell:,.2f}")
 
+        recommendation = analysis.summary["RECOMMENDATION"]
+        if (recommendation == "STRONG_BUY" or recommendation == "BUY") and (signal_buy and price_close <= price_buy):
             subject = f"Strong buy {ticker} at ${price_close:,.2f}"
             body = f"Interval: {interval}\nLast updated: {datetime_buy}\nBelow: ${price_buy :,.2f}"
             message = f"Subject: {subject}\n\n{subject}\n{body}"
