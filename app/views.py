@@ -93,4 +93,44 @@ def prepare_web_content(trade_date):
 
     return res[1:]
 
-# print(prepare_web_content("2023-07-17"))
+
+def email_notification(ticker, interval, email):
+    try:
+        handler = TA_Handler(
+            symbol=ticker,
+            exchange=md.ticker_exchanges.get(ticker),
+            screener="america",
+        )
+
+        handler.interval = md.intervals.get(interval)
+        analysis = handler.get_analysis()
+
+        today_string = datetime.now().strftime("%Y-%m-%d")
+        df = md.get_df_interval(ticker, today_string, interval, md.interval_type.get(interval))
+
+        signal_buy, price_buy = False, 0.00
+        signal_sell, price_sell = False, 0.00
+        price_close = analysis.indicators["close"]
+        recent_cycle = 26
+
+        for i in range(len(df) - 1, max(len(df) - recent_cycle, -1), -1):
+            current, price = df["BuyIndex"][i], df["Close"][i]
+            if current == "PotentialBuy" and not signal_buy:
+                signal_buy, price_buy = True, price
+            elif current == "PotentialSell" and not signal_sell:
+                signal_sell, price_sell = True, price
+            elif signal_buy and signal_sell:
+                break
+
+        # print(f"{ticker}: {price_close}, {signal_buy}: {price_buy}, {signal_sell}: {price_sell}")
+
+        if analysis.summary["RECOMMENDATION"] == "STRONG_BUY" and (signal_buy and price_close <= price_buy):
+            print(datetime.now(), ticker, analysis.summary["RECOMMENDATION"], price_close)
+
+        # if analysis.summary["RECOMMENDATION"] == "STRONG_SELL" and (signal_sell and price_close >= price_sell):
+        #     print(datetime.now(), ticker, analysis.summary["RECOMMENDATION"], price_close)
+        # else:
+        #     print(f"{ticker}: {analysis.summary['RECOMMENDATION']} {analysis.indicators['close']}")
+
+    except Exception as e:
+        print(f"Error ({e}): {ticker}")
