@@ -1,9 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-import time
 from longbridge.openapi import TradeContext, Config, OrderStatus, OrderType, OrderSide, Market, TimeInForceType
-from tradingview_ta import TA_Handler
-from app import models as md
 
 
 def init():
