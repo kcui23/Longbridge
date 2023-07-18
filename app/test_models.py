@@ -38,4 +38,4 @@ principal = 10000.00
 
 if __name__ == "__main__":
     # test_single_stock("NVDA")
-    test_all_stocks("2023-07-17", principal)
+    test_all_stocks("2023-07-18", principal)
