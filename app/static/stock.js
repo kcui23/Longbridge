@@ -113,4 +113,3 @@ function setIntervalAndEmail() {
         form.submit();
     }
 }
-
