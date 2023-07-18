@@ -27,7 +27,7 @@ ticker_exchanges = {
     ]}
 
 interval_type = {
-    "1m": 3, "15m": 30, "30m": 59, "60m": 180, "1d": 365
+    "1m": 3, "5m": 3, "15m": 30, "30m": 59, "60m": 180, "1d": 365
 }
 
 intervals = {
@@ -423,7 +423,7 @@ def get_df_interval(ticker, trade_date, interval, days):
     try:
         df = yf.download(ticker, start=start_time, end=end_time, interval=interval, progress=False)
 
-        if interval == "1m":
+        if interval == "1m" or interval == "5m":
             df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
         else:
             df.index = df.index.tz_localize("UTC")
