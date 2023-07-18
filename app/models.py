@@ -20,10 +20,10 @@ ticker_exchanges = {
         "META", "ORCL", "AMD", "ADBE", "QCOM",
         "NFLX", "ASML", "AVGO", "VZ", "GS",
         "JPM", "MS", "WFC", "BAC", "C",
-        "V", "MA", "AXP", "TSLA", "QQQ"
-        # "MCD", "KO", "PEP", "PG", "ABBV",
-        # "MRK", "LLY", "UNH", "PFE", "JNJ",
-        # "XOM", "CVX",
+        "V", "MA", "AXP", "TSLA", "QQQ",
+        "MCD", "KO", "PEP", "PG", "ABBV",
+        "MRK", "LLY", "UNH", "PFE", "JNJ",
+        "XOM", "CVX",
     ]}
 
 interval_type = {
@@ -110,7 +110,6 @@ def find_signals(df):
 
         DIF = df["DIF"][i]
         DEM = df["DEM"][i]
-        CRSI = df["CRSI"][i]
         K = df["K"][i]
         D = df["D"][i]
         J = df["J"][i]
@@ -435,4 +434,4 @@ def get_df_interval(ticker, trade_date, interval, days):
 
         return df
     except Exception as e:
-        print(f"Error retrieving data for: {e}: {ticker}")
+        print(f"Error ({e}): {ticker}")
