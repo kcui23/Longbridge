@@ -2,6 +2,7 @@ import time
 from datetime import datetime, time as dt_time
 from flask import Flask, render_template, request
 from app import views
+from app import emails
 from app import models as md
 
 app = Flask(__name__, template_folder="app/templates/", static_folder="app/static/")
@@ -31,16 +32,16 @@ def start_email_notification():
         email = request.form["email"]
         interval = request.form["interval"]
 
-        start_time = dt_time(21, 0)
+        start_time = dt_time(12, 0)
         end_time = dt_time(4, 0)
 
         while True:
             now = datetime.now().time()
             if now >= start_time or now <= end_time:
                 for ticker, _ in md.ticker_exchanges.items():
-                    views.email_notification(ticker, interval, email)
+                    emails.email_notification(ticker, interval, email)
             else:
-                print(datetime.now().time(), "ONLY RUNNING AT 21:00-04:00")
+                print(datetime.now().time(), "ONLY RUNNING AT 12:00-04:00")
 
             time.sleep(30)
 
