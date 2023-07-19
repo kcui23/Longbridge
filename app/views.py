@@ -1,8 +1,7 @@
 import numpy as np
 from datetime import datetime
 from tradingview_ta import TA_Handler
-import smtplib
-from . import models as md
+from beingRich.app import models as md
 
 
 def prepare_tradingview(interval):
@@ -93,58 +92,3 @@ def prepare_web_content(trade_date):
         res = np.append(res, [current], axis=0)
 
     return res[1:]
-
-
-def email_notification(ticker, interval, email):
-    def send_email(receiver_email, message):
-        sender_email = "asta_test_lightwing@outlook.com"
-        password = "04^kI3-CYGbhL-b%SHDL"
-
-        server = smtplib.SMTP("smtp-mail.outlook.com", 587)
-        server.starttls()
-        server.login(sender_email, password)
-        server.sendmail(sender_email, receiver_email, message)
-        server.quit()
-
-    try:
-        handler = TA_Handler(
-            symbol=ticker,
-            exchange=md.ticker_exchanges.get(ticker),
-            screener="america",
-        )
-
-        handler.interval = md.intervals.get(interval)
-        analysis = handler.get_analysis()
-
-        today_string = datetime.now().strftime("%Y-%m-%d")
-        df = md.get_df_interval(ticker, today_string, interval, md.interval_type.get(interval))
-
-        signal_buy, price_buy, datetime_buy = False, 0.00, ""
-        signal_sell, price_sell, datetime_sell = False, 0.00, ""
-        price_close = analysis.indicators["close"]
-        recent_cycle = 26
-
-        for i in range(len(df) - 1, max(len(df) - recent_cycle, -1), -1):
-            current, price, datetime_last = df["BuyIndex"][i], df["Close"][i], df["Datetime"][i]
-            if current == "PotentialBuy" and not signal_buy:
-                signal_buy, price_buy, datetime_buy = True, price, datetime_last
-            elif current == "PotentialSell" and not signal_sell:
-                signal_sell, price_sell, datetime_sell = True, price, datetime_last
-            elif signal_buy and signal_sell:
-                break
-
-        if signal_buy:
-            print(f"{ticker:5s} Buy  {datetime_buy} {price_buy:,.2f}")
-        if signal_sell:
-            print(f"{ticker:5s} Sell {datetime_sell} {price_sell:,.2f}")
-
-        recommendation = analysis.summary["RECOMMENDATION"]
-        if (recommendation == "STRONG_BUY") and (signal_buy and price_close <= price_buy):
-            subject = f"Strong buy {ticker} at ${price_close:,.2f}"
-            body = f"Interval: {interval}\nLast updated: {datetime_buy}\nBelow: ${price_buy :,.2f}"
-            message = f"Subject: {subject}\n\n{subject}\n{body}"
-
-            send_email(email, message)
-
-    except Exception as e:
-        print(f"Error ({e}): {ticker}")
