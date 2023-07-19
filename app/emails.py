@@ -62,6 +62,7 @@ def email_notification(ticker, interval, email):
 
         handler.interval = md.intervals.get(interval)
         analysis = handler.get_analysis()
+        db.update_tradingview_data(analysis)
 
         today_string = datetime.now().strftime("%Y-%m-%d")
         df = md.get_df_interval(ticker, today_string, interval, md.interval_type.get(interval))
@@ -93,6 +94,17 @@ def email_notification(ticker, interval, email):
                 subject = f"Strong buy {ticker} at ${price_close:,.2f}"
                 body = f"Interval: {interval}\nLast updated: {datetime_buy}\nBelow: ${price_buy :,.2f}\n\nReference ID: {notification_id}"
                 message = f"Subject: {subject}\n\n{body}"
+
+                send_email(email, message)
+
+        elif (recommendation == "STRONG_SELL") and (signal_sell and price_close >= price_sell):
+            notification_id = generate_email_notification_id(ticker, "Strong sell", datetime_sell, f"{price_sell:,.2f}", interval)
+
+            if len(notification_id) > 0:
+                subject = f"Strong sell {ticker} at ${price_close:,.2f}"
+                body = f"Interval: {interval}\nLast updated: {datetime_sell}\nAbove: ${price_sell :,.2f}\n\nReference ID: {notification_id}"
+                message = f"Subject: {subject}\n\n{body}"
+
                 send_email(email, message)
 
     except Exception as e:
