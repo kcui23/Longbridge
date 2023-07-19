@@ -32,7 +32,7 @@ def start_email_notification():
         email = request.form["email"]
         interval = request.form["interval"]
 
-        start_time = dt_time(12, 0)
+        start_time = dt_time(21, 30)
         end_time = dt_time(4, 0)
 
         while True:
@@ -41,7 +41,7 @@ def start_email_notification():
                 for ticker, _ in md.ticker_exchanges.items():
                     emails.email_notification(ticker, interval, email)
             else:
-                print(datetime.now().time(), "ONLY RUNNING AT 12:00-04:00")
+                print(datetime.now().time(), "ONLY RUNNING AT 21:30-04:00")
 
             time.sleep(30)
 
