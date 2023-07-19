@@ -35,7 +35,7 @@ intervals = {
     "5m": Interval.INTERVAL_5_MINUTES,
     "15m": Interval.INTERVAL_15_MINUTES,
     "30m": Interval.INTERVAL_30_MINUTES,
-    "1h": Interval.INTERVAL_1_HOUR,
+    "60m": Interval.INTERVAL_1_HOUR,
     "1d": Interval.INTERVAL_1_DAY,
 }
 
