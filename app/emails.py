@@ -20,11 +20,11 @@ def generate_email_notification_id(ticker, signal, last_updated_datetime, last_p
     count = cursor.fetchone()[0]
 
     if count == 0:
-        cursor.execute('''
-                    SELECT TO_CHAR(CURRENT_DATE, 'YYYYMMDD') || LPAD(CAST(COUNT(*) + 1 AS TEXT), 4, '0')
+        cursor.execute("""
+                    SELECT TO_CHAR(CURRENT_DATE AT TIME ZONE 'America/New_York', 'YYYYMMDD') || LPAD(CAST(COUNT(*) + 1 AS TEXT), 4, '0')
                     FROM notification_email
-                    WHERE last_updated_datetime >= CURRENT_DATE;
-                ''')
+                    WHERE last_updated_datetime >= CURRENT_DATE AT TIME ZONE 'America/New_York';
+        """)
         notification_id = cursor.fetchone()[0]
         notification_id += f"({hashlib.md5((ticker + interval).encode()).hexdigest()[:4]})"
 
