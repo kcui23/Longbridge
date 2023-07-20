@@ -41,7 +41,7 @@ def start_email_notification():
                 for ticker, _ in md.ticker_exchanges.items():
                     emails.email_notification(ticker, interval, email)
             else:
-                print(datetime.now().time(), "ONLY RUNNING AT 21:30-04:00")
+                print(datetime.now().time(), "ONLY RUNNING BETWEEN 21:30-04:00")
 
             time.sleep(30)
 
