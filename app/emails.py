@@ -82,21 +82,25 @@ def email_notification(ticker: str, interval: str, email: str) -> None:
         if signal_sell:
             print(f"{ticker:5s} Sell {datetime_sell} {price_sell:,.2f}")
 
-        recommendation, subject, body = analysis.summary["RECOMMENDATION"], "", ""
+        recommendation = analysis.summary["RECOMMENDATION"]
         if (recommendation == "STRONG_BUY") and (signal_buy and price_close <= price_buy):
             notification_id = generate_email_notification_id(ticker, "Strong buy", datetime_buy, f"{price_buy:,.2f}", interval)
             if notification_id is not None:
                 subject = f"Strong buy {ticker} at ${price_close:,.2f}"
                 body = f"Interval: {interval}\nLast updated: {datetime_buy}\nBelow: ${price_buy :,.2f}\n\nReference ID: {notification_id}"
+                message = f"Subject: {subject}\n\n{body}"
+                send_email(email, message)
 
         elif (recommendation == "STRONG_SELL" or recommendation == "SELL") and (signal_sell and price_close >= price_sell):
             notification_id = generate_email_notification_id(ticker, "Strong sell", datetime_sell, f"{price_sell:,.2f}", interval)
             if notification_id is not None:
                 subject = f"Strong sell {ticker} at ${price_close:,.2f}"
                 body = f"Interval: {interval}\nLast updated: {datetime_sell}\nAbove: ${price_sell :,.2f}\n\nReference ID: {notification_id}"
+                message = f"Subject: {subject}\n\n{body}"
+                send_email(email, message)
 
-        message = f"Subject: {subject}\n\n{body}"
-        send_email(email, message)
+
+
 
     except Exception as e:
         print(f"Error ({e}): {ticker}")
