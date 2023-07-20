@@ -11,26 +11,21 @@ def generate_email_notification_id(ticker: str, signal: str, last_updated_dateti
     cnx = db.connect_to_db()
     cursor = cnx.cursor()
 
-    cursor.execute('''
-        SELECT COUNT(*)
-        FROM notification_email
-        WHERE ticker = %s AND signal = %s AND last_updated_datetime = %s AND last_price = %s AND interval = %s;
-    ''', (ticker, signal, last_updated_datetime, last_price, interval))
+    cursor.execute(f"""
+        SELECT COUNT(*) FROM notification_email WHERE ticker = '{ticker}' AND signal = '{signal}' AND last_updated_datetime = '{last_updated_datetime}' AND last_price = '{last_price}' AND interval = '{interval}';
+    """)
     count = cursor.fetchone()[0]
 
     if count == 0:
         cursor.execute("""
-                    SELECT TO_CHAR(CURRENT_DATE AT TIME ZONE 'America/New_York', 'YYYYMMDD') || LPAD(CAST(COUNT(*) + 1 AS TEXT), 4, '0')
-                    FROM notification_email
-                    WHERE last_updated_datetime >= CURRENT_DATE AT TIME ZONE 'America/New_York';
+            SELECT TO_CHAR(CURRENT_DATE AT TIME ZONE 'America/New_York', 'YYYYMMDD') || LPAD(CAST(COUNT(*) + 1 AS TEXT), 4, '0') FROM notification_email WHERE last_updated_datetime >= CURRENT_DATE AT TIME ZONE 'America/New_York';
         """)
+
         notification_id = cursor.fetchone()[0]
         notification_id += f"({hashlib.md5((ticker + interval).encode()).hexdigest()[:4]})"
 
-        cursor.execute('''
-                    INSERT INTO notification_email (id, ticker, signal, last_updated_datetime, last_price, interval)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                ''', (notification_id, ticker, signal, last_updated_datetime, last_price, interval))
+        cursor.execute(
+            f"""INSERT INTO notification_email (id, ticker, signal, last_updated_datetime, last_price, interval, creation_time) VALUES ('{notification_id}', '{ticker}', '{signal}', '{last_updated_datetime}', '{last_price}', '{interval}', NOW())""")
     else:
         print("Duplicated", ticker, signal, last_updated_datetime, last_price, interval)
         notification_id = None
@@ -87,26 +82,21 @@ def email_notification(ticker: str, interval: str, email: str) -> None:
         if signal_sell:
             print(f"{ticker:5s} Sell {datetime_sell} {price_sell:,.2f}")
 
-        recommendation = analysis.summary["RECOMMENDATION"]
+        recommendation, subject, body = analysis.summary["RECOMMENDATION"], "", ""
         if (recommendation == "STRONG_BUY") and (signal_buy and price_close <= price_buy):
             notification_id = generate_email_notification_id(ticker, "Strong buy", datetime_buy, f"{price_buy:,.2f}", interval)
-
-            if len(notification_id) > 0:
+            if notification_id is not None:
                 subject = f"Strong buy {ticker} at ${price_close:,.2f}"
                 body = f"Interval: {interval}\nLast updated: {datetime_buy}\nBelow: ${price_buy :,.2f}\n\nReference ID: {notification_id}"
-                message = f"Subject: {subject}\n\n{body}"
 
-                send_email(email, message)
-
-        elif (recommendation == "STRONG_SELL") and (signal_sell and price_close >= price_sell):
+        elif (recommendation == "STRONG_SELL" or recommendation == "SELL") and (signal_sell and price_close >= price_sell):
             notification_id = generate_email_notification_id(ticker, "Strong sell", datetime_sell, f"{price_sell:,.2f}", interval)
-
-            if len(notification_id) > 0:
+            if notification_id is not None:
                 subject = f"Strong sell {ticker} at ${price_close:,.2f}"
                 body = f"Interval: {interval}\nLast updated: {datetime_sell}\nAbove: ${price_sell :,.2f}\n\nReference ID: {notification_id}"
-                message = f"Subject: {subject}\n\n{body}"
 
-                send_email(email, message)
+        message = f"Subject: {subject}\n\n{body}"
+        send_email(email, message)
 
     except Exception as e:
         print(f"Error ({e}): {ticker}")
