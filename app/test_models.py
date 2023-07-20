@@ -1,10 +1,15 @@
+import time
 from datetime import datetime
 from beingRich.app import models as md
+from beingRich.app import database as db
 
 
-def test_single_stock(ticker):
+def test_single_stock(ticker: str, trade_day: str, principal: float) -> None:
     for key, interval in md.interval_type.items():
-        df = md.get_df_interval(ticker, "2023-07-19", key, interval)
+        df = md.get_df_interval(ticker, trade_day, key, interval)
+
+        db.update_yahoofinance_data(ticker, df)
+
         df = md.paper_trade(df, principal)
         md.print_trade_records(df)
         print("\n%-5s %18s (%s)" % (
@@ -14,10 +19,13 @@ def test_single_stock(ticker):
         md.plot_stock_screener(df, ticker)
 
 
-def test_all_stocks(trade_day, principal):
+def test_all_stocks(trade_day: str, principal: float) -> None:
     for ticker, _ in md.ticker_exchanges.items():
         for interval, value in md.interval_type.items():
             df = md.get_df_interval(ticker, trade_day, interval, value)
+
+            db.update_yahoofinance_data(ticker, df)
+
             df = md.paper_trade(df, principal)
             md.print_realtime_ratting(df)
             md.plot_stock_screener(df, ticker)
@@ -33,8 +41,9 @@ def test_all_stocks(trade_day, principal):
 
 today = datetime.today()
 date_string_today = today.strftime("%Y-%m-%d")
-principal = 10000.00
 
 if __name__ == "__main__":
-    # test_single_stock("NVDA")
-    test_all_stocks(date_string_today, principal)
+    # test_single_stock("NVDA", date_string_today, 10000.00)
+    start_time = time.time()
+    test_all_stocks(date_string_today, 10000.00)
+    print(f"Elapsed time: {time.time() - start_time:.2f} seconds")
