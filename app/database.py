@@ -30,3 +30,21 @@ def update_tradingview_data(analysis):
     cnx.commit()
     cursor.close()
     cnx.close()
+
+
+def remove_tradingview_duplicates():
+    cnx = connect_to_db()
+    cursor = cnx.cursor()
+
+    cursor.execute("""
+        DELETE
+        FROM tradingview_analysis
+        WHERE datetime NOT IN (SELECT MIN(datetime)
+            FROM tradingview_analysis
+            GROUP BY ticker, interval, "Recommend.Other", "Recommend.All", "Recommend.MA", volume, change, open, low, high)
+                OR (datetime::TIME > '04:00'::TIME AND datetime::TIME < '21:30'::TIME);
+    """)
+
+    cnx.commit()
+    cursor.close()
+    cnx.close()
