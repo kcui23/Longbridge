@@ -8,6 +8,7 @@ import yfinance as yf
 import ta
 import pendulum
 from datetime import datetime, timedelta
+from typing import Optional
 from tradingview_ta import Interval
 
 ticker_exchanges = {
@@ -414,7 +415,7 @@ def plot_stock_screener(df, ticker):
     fig.savefig(file_name + ".png", transparent=False, bbox_inches='tight')
 
 
-def get_df_interval(ticker, trade_date, interval, days):
+def get_df_interval(ticker: str, trade_date: str, interval: str, days: int) -> Optional[pd.DataFrame]:
     current_date = datetime.now()
     start_date = (current_date - timedelta(days=days)).strftime("%Y-%m-%d")
     start_time = pendulum.parse(start_date + " 00:00:00")

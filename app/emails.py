@@ -1,16 +1,15 @@
 import smtplib
 import hashlib
 from datetime import datetime
+from typing import Optional
 from tradingview_ta import TA_Handler
 from beingRich.app import models as md
 from beingRich.app import database as db
 
 
-def generate_email_notification_id(ticker, signal, last_updated_datetime, last_price, interval):
+def generate_email_notification_id(ticker: str, signal: str, last_updated_datetime: str, last_price: str, interval: str) -> Optional[str]:
     cnx = db.connect_to_db()
     cursor = cnx.cursor()
-
-    notification_id = ""
 
     cursor.execute('''
         SELECT COUNT(*)
@@ -34,6 +33,7 @@ def generate_email_notification_id(ticker, signal, last_updated_datetime, last_p
                 ''', (notification_id, ticker, signal, last_updated_datetime, last_price, interval))
     else:
         print("Duplicated", ticker, signal, last_updated_datetime, last_price, interval)
+        notification_id = None
 
     cnx.commit()
     cursor.close()
