@@ -32,10 +32,9 @@ def test_all_stocks(trade_day, principal):
 
 
 today = datetime.today()
-date_string = today.strftime("%Y-%m-%d")
 date_string_today = today.strftime("%Y-%m-%d")
 principal = 10000.00
 
 if __name__ == "__main__":
-    test_single_stock("NVDA")
-    # test_all_stocks("2023-07-19", principal)
+    # test_single_stock("NVDA")
+    test_all_stocks(date_string_today, principal)
