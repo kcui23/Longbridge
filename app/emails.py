@@ -42,17 +42,18 @@ def generate_email_notification_id(ticker, signal, last_updated_datetime, last_p
     return notification_id
 
 
-def email_notification(ticker, interval, email):
-    def send_email(receiver_email, message):
-        sender_email = "asta_test_lightwing@outlook.com"
-        password = "04^kI3-CYGbhL-b%SHDL"
+def send_email(receiver_email: str, message: str) -> None:
+    sender_email = "asta_test_lightwing@outlook.com"
+    password = "04^kI3-CYGbhL-b%SHDL"
 
-        server = smtplib.SMTP("smtp-mail.outlook.com", 587)
-        server.starttls()
-        server.login(sender_email, password)
-        server.sendmail(sender_email, receiver_email, message)
-        server.quit()
+    server = smtplib.SMTP("smtp-mail.outlook.com", 587)
+    server.starttls()
+    server.login(sender_email, password)
+    server.sendmail(sender_email, receiver_email, message)
+    server.quit()
 
+
+def email_notification(ticker: str, interval: str, email: str) -> None:
     try:
         handler = TA_Handler(
             symbol=ticker,
