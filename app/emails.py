@@ -18,14 +18,14 @@ def generate_email_notification_id(ticker: str, signal: str, last_updated_dateti
 
     if count == 0:
         cursor.execute("""
-            SELECT TO_CHAR(CURRENT_DATE AT TIME ZONE 'America/New_York', 'YYYYMMDD') || LPAD(CAST(COUNT(*) + 1 AS TEXT), 4, '0') FROM notification_email WHERE last_updated_datetime >= CURRENT_DATE AT TIME ZONE 'America/New_York';
+            SELECT TO_CHAR(CURRENT_DATE AT TIME ZONE 'EST', 'YYYYMMDD') || LPAD(CAST(COUNT(*) + 1 AS TEXT), 4, '0') FROM notification_email WHERE creation_time >= CURRENT_DATE AT TIME ZONE 'EST';
         """)
 
         notification_id = cursor.fetchone()[0]
         notification_id += f"({hashlib.md5((ticker + interval).encode()).hexdigest()[:4]})"
 
         cursor.execute(
-            f"""INSERT INTO notification_email (id, ticker, signal, last_updated_datetime, last_price, interval, creation_time) VALUES ('{notification_id}', '{ticker}', '{signal}', '{last_updated_datetime}', '{last_price}', '{interval}', NOW())""")
+            f"""INSERT INTO notification_email (id, ticker, signal, last_updated_datetime, last_price, interval, creation_time) VALUES ('{notification_id}', '{ticker}', '{signal}', '{last_updated_datetime}', '{last_price}', '{interval}', NOW() AT TIME ZONE 'HKT' AT TIME ZONE 'EST')""")
     else:
         print("Duplicated", ticker, signal, last_updated_datetime, last_price, interval)
         notification_id = None
@@ -98,9 +98,6 @@ def email_notification(ticker: str, interval: str, email: str) -> None:
                 body = f"Interval: {interval}\nLast updated: {datetime_sell}\nAbove: ${price_sell :,.2f}\n\nReference ID: {notification_id}"
                 message = f"Subject: {subject}\n\n{body}"
                 send_email(email, message)
-
-
-
 
     except Exception as e:
         print(f"Error ({e}): {ticker}")
