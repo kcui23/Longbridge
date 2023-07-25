@@ -33,7 +33,7 @@ def start_email_notification():
         interval = request.form["interval"]
 
         start_time = dt_time(21, 30)
-        end_time = dt_time(4, 0)
+        end_time = dt_time(4, 30)
 
         while True:
             now = datetime.now().time()
