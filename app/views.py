@@ -1,7 +1,7 @@
 import numpy as np
 from datetime import datetime
 from tradingview_ta import TA_Handler
-from beingRich.app import models as md
+from app import models as md
 
 
 def prepare_tradingview(interval):

@@ -1,5 +1,5 @@
 import psycopg2
-from beingRich.app import models as md
+from app import models as md
 
 user = "lightwing"
 password = "canton0520"

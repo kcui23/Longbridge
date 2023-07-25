@@ -3,8 +3,8 @@ import hashlib
 from datetime import datetime
 from typing import Optional
 from tradingview_ta import TA_Handler
-from beingRich.app import models as md
-from beingRich.app import database as db
+from app import models as md
+from app import database as db
 
 
 def generate_email_notification_id(ticker: str, signal: str, last_updated_datetime: str, last_price: str, interval: str) -> Optional[str]:
@@ -91,7 +91,7 @@ def email_notification(ticker: str, interval: str, email: str) -> None:
                 message = f"Subject: {subject}\n\n{body}"
                 send_email(email, message)
 
-        elif (recommendation == "STRONG_SELL" or recommendation == "SELL") and (signal_sell and price_close >= price_sell):
+        elif (recommendation == "STRONG_SELL") and (signal_sell and price_close >= price_sell):
             notification_id = generate_email_notification_id(ticker, "Strong sell", datetime_sell, f"{price_sell:,.2f}", interval)
             if notification_id is not None:
                 subject = f"Strong sell {ticker} at ${price_close:,.2f}"
