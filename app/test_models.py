@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
-from beingRich.app import models as md
-from beingRich.app import database as db
+from app import models as md
+from app import database as db
 
 
 def test_single_stock(ticker: str, trade_day: str, principal: float) -> None:
