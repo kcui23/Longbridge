@@ -24,7 +24,7 @@ ticker_exchanges = {
         "V", "MA", "AXP", "TSLA", "QQQ",
         "MCD", "KO", "PEP", "PG", "ABBV",
         "MRK", "LLY", "UNH", "PFE", "JNJ",
-        "XOM", "CVX",
+        "XOM", "CVX", "SPY"
     ]}
 
 interval_type = {
@@ -119,9 +119,9 @@ def find_signals(df):
             DIF_last = df["DIF"][i - 1]
             DEM_last = df["DEM"][i - 1]
 
-            if (DIF > DEM and DIF_last < DEM_last) and (J >= K and J >= D):
+            if (DIF > DEM and DIF_last < DEM_last) and (J > K and J > D):
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
-            elif (DIF < DEM and DIF_last > DEM_last) and (J <= K and J <= D):
+            elif (DIF < DEM and DIF_last > DEM_last) and (J < K and J < D):
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialSell"
             else:
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "Hold"
@@ -393,7 +393,6 @@ def plot_stock_screener(df, ticker):
     kdj_j = mpf.make_addplot(df["J"], ax=ax4, color="#ffa500", width=line_width)
 
     plots = [vwap, macd_DIF, macd_DEM, macd_Histogram, rsi, crsi, kdj_k, kdj_d, kdj_j]
-
     file_name = "../images/" + distinguish_interval(df) + " " + ticker + " " + str(df["Datetime"][0])[:10] + " " + str(df["Datetime"][len(df) - 1])[:10]
 
     mpf.plot(
