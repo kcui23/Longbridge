@@ -24,7 +24,7 @@ ticker_exchanges = {
         "V", "MA", "AXP", "TSLA", "QQQ",
         "MCD", "KO", "PEP", "PG", "ABBV",
         "MRK", "LLY", "UNH", "PFE", "JNJ",
-        "XOM", "CVX", "SPY"
+        "XOM", "CVX"
     ]}
 
 interval_type = {
