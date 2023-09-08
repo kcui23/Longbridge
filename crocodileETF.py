@@ -96,7 +96,7 @@ ax1.text(0, 1, 'Matsuda Benjamin ETF Daily Report\n松田本傑明追蹤指數�
          fontsize=18,
          color='#1d6f42', transform=ax1.transAxes)
 rect = Rectangle((0, 0.85), 0.28, 0.13, facecolor='#1d6f42', transform=ax1.transAxes)
-ax1.text(0, 0.87, 'Updated on\n' + now.strftime('%d/%m/%Y %H:%M'), fontsize=10, color='#ffffff',
+ax1.text(0, 0.87, ' Updated on\n' + now.strftime(' %d/%m/%Y %H:%M'), fontsize=10, color='#ffffff',
          transform=ax1.transAxes)
 ax1.add_patch(rect)
 
