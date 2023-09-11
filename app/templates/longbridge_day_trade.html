@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Long Bridge Day Trade</title>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <script type="text/javascript" src="{{ url_for('static', filename='stock.js') }}"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='stock_style.css') }}">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+</head>
+<body>
+<header>
+    <p class="h2">Configure your day trade</p>
+</header>
+<main>
+    <form id="LongBridgeDayTrade" method="POST" action="/longbridge-day-trade" class="form">
+        <div class="form-group">
+            <label for="email">Your email for notification</label>
+            <input type="email" name="email" class="form-control" id="email" aria-describedby="tickerHelp">
+            <small id="tickerHelp" class="form-text text-muted">
+                No human will see your email<br>
+                你的信息始終絕密
+            </small>
+        </div>
+        <div class="form-group">
+            <label for="interval">Ticker</label>
+            <input type="text" name="ticker" class="form-control" id="ticker" aria-describedby="tickerHelp">
+            <small id="tickerHelp" class="form-text text-muted">
+                A ticker should be like MSFT
+            </small>
+        </div>
+        <div class="form-group">
+            <label for="interval">Interval</label>
+            <select class="form-control" id="interval" name="interval">
+                <option>1m</option>
+                <option>5m</option>
+                <option>15m</option>
+                <option>30m</option>
+                <option>60m</option>
+                <option>1d</option>
+            </select>
+        </div>
+        <div style="text-align: right;">
+            <a type="submit" id="start_daytrade" class="btn btn-primary"
+               style="background-color: #0055cc;" onclick="setDayTradeConfiguration()">
+                Start your day trade
+            </a>
+        </div>
+    </form>
+</main>
+</body>
+</html>
