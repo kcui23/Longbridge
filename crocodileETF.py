@@ -58,9 +58,9 @@ base_color = colors.hex2color('#1D6F42')
 color_scheme = [colors.rgb2hex((base_color[0] * (1 - shade), base_color[1] * (1 - shade), base_color[2] * (1 - shade)))
                 for shade in [0.00, 0.10, 0.20, 0.30, 0.40]]
 
-fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(6, 8), dpi=300)
+fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(5, 8), dpi=300)
 ax1.pie(values, labels=labels, colors=color_scheme, startangle=90, wedgeprops={'edgecolor': 'white'},
-        textprops={'color': '#1D6F42', 'fontname': 'Arial'})
+        textprops={'color': '#1D6F42', 'fontname': 'PingFang HK', 'fontsize': 9})
 ax1.axis('equal')
 
 circle = plt.Circle((0, 0), 0.88, color='white')
@@ -68,7 +68,7 @@ ax1.add_artist(circle)
 
 table = ax2.table(cellText=table_data, loc='center', edges='open')
 table.auto_set_font_size(False)
-table.set_fontsize(10)
+table.set_fontsize(9)
 table.scale(1, 1.5)
 ax2.axis('off')
 
@@ -87,16 +87,16 @@ for row in range(len(table_data)):
         elif "-" not in table_data[row][6]:
             cell.set_text_props(color='#1d6f42', fontname='PingFang HK')
 
-        if row == len(table_data) - 1 and col >= 5:
-            cell.set_text_props(fontsize=12, weight='bold')
+        if row == len(table_data) - 1 and col == 5:
+            cell.set_text_props(fontsize=11, weight='bold')
 
 now = datetime.now()
 
-ax1.text(0, 1, 'Matsuda Benjamin ETF Daily Report\n松田本傑明追蹤指數基金持倉報告', fontname='Source Han Serif TC',
-         fontsize=18,
+ax1.text(0, 1.05, 'Matsuda Benjamin ETF Daily Report\n松田本傑明追蹤指數基金持倉報告', fontname='Source Han Serif TC',
+         fontsize=15,
          color='#1d6f42', transform=ax1.transAxes)
-rect = Rectangle((0, 0.85), 0.28, 0.13, facecolor='#1d6f42', transform=ax1.transAxes)
-ax1.text(0, 0.87, ' Updated on\n' + now.strftime(' %d/%m/%Y %H:%M'), fontsize=10, color='#ffffff',
+rect = Rectangle((0, 0.88), 0.25, 0.10, facecolor='#1d6f42', transform=ax1.transAxes)
+ax1.text(0, 0.90, ' Updated on\n' + now.strftime(' %d/%m/%Y %H:%M'), fontsize=7, color='#ffffff',
          transform=ax1.transAxes)
 ax1.add_patch(rect)
 
