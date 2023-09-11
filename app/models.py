@@ -28,7 +28,7 @@ ticker_exchanges = {
     ]}
 
 interval_type = {
-    "1m": 3, "5m": 10, "15m": 30, "30m": 59, "60m": 180, "1d": 365
+    "1m": 1, "5m": 3, "15m": 7, "30m": 30, "60m": 30, "1d": 365
 }
 
 intervals = {
@@ -178,9 +178,10 @@ def paper_trade(df, principal):
         df.iloc[i, df.columns.get_loc("BuyIndex")] = direction
         df.iloc[i, df.columns.get_loc("Cost")] = current_price - commission / max(position, 1)
 
-    take_profit_limit = 0.005
+    take_profit_limit = 0.01
+    # take_profit_limit = 0.005
     stop_loss_limit = 0.005
-    buy_lower_limit = 0.01
+    buy_lower_limit = 0.01  # Second buy
     df["Balance"] = principal
     df["Position"] = 0
     df["Commission"] = 0.00
@@ -223,7 +224,11 @@ def paper_trade(df, principal):
                 res = last_buy_price * (1 - stop_loss_limit)
                 df.iloc[i, df.columns.get_loc("Remarks")] = "(%d) <= %.2f Stop loss" % (count_operation, res)
 
-        df.iloc[i, df.columns.get_loc("TotalAssets")] = df["Balance"][i] if df["Position"][i] == 0 else df["Balance"][i] + df["Close"][i] * df["Position"][i]
+        df.iloc[i, df.columns.get_loc("TotalAssets")] = df["Balance"][i] if df["Position"][i] == 0 else df["Balance"][
+                                                                                                            i] + \
+                                                                                                        df["Close"][i] * \
+                                                                                                        df["Position"][
+                                                                                                            i]
 
     return df
 
@@ -393,7 +398,8 @@ def plot_stock_screener(df, ticker):
     kdj_j = mpf.make_addplot(df["J"], ax=ax4, color="#ffa500", width=line_width)
 
     plots = [vwap, macd_DIF, macd_DEM, macd_Histogram, rsi, crsi, kdj_k, kdj_d, kdj_j]
-    file_name = "../images/" + distinguish_interval(df) + " " + ticker + " " + str(df["Datetime"][0])[:10] + " " + str(df["Datetime"][len(df) - 1])[:10]
+    file_name = "../images/" + distinguish_interval(df) + " " + ticker + " " + str(df["Datetime"][0])[:10] + " " + str(
+        df["Datetime"][len(df) - 1])[:10]
 
     mpf.plot(
         df, type="candle", ax=ax1, style=s, addplot=plots,
