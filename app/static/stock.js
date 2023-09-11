@@ -113,3 +113,19 @@ function setIntervalAndEmail() {
         form.submit();
     }
 }
+
+function setDayTradeConfiguration() {
+    let form = document.getElementById("LongBridgeDayTrade");
+    const emailInput = document.querySelector("#email");
+    const email = emailInput.value;
+    const emailRegex = /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/;
+
+    if (!emailRegex.test(email)) {
+        alert("Please enter a valid email\nThank you");
+        emailInput.focus();
+        return null;
+    } else {
+        console.log(email);
+        form.submit();
+    }
+}
