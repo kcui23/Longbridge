@@ -55,7 +55,7 @@ def load_successfully_subscribed():
 
 
 @app.route("/longbridge-day-trade", methods=["GET", "POST"])
-def execute_longbridge_daytrade():
+def execute_longbridge_day_trade():
     if request.method == "POST":
         email = request.form["email"]
         ticker = request.form["ticker"]
