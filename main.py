@@ -4,6 +4,7 @@ from flask import Flask, render_template, request
 from app import views
 from app import emails
 from app import models as md
+from app import longbridge_day_trade
 
 app = Flask(__name__, template_folder="app/templates/", static_folder="app/static/")
 
@@ -51,6 +52,19 @@ def start_email_notification():
 @app.route("/thank-you")
 def load_successfully_subscribed():
     return render_template("successfully_subscribed.html")
+
+
+@app.route("/longbridge-day-trade", methods=["GET", "POST"])
+def execute_longbridge_daytrade():
+    if request.method == "POST":
+        email = request.form["email"]
+        ticker = request.form["ticker"]
+        interval = request.form["interval"]
+        quantity = request.form["customQuantity"]
+
+        longbridge_day_trade.day_trade(email, ticker, interval, quantity)
+
+    return render_template("longbridge_day_trade.html")
 
 
 @app.route("/")
