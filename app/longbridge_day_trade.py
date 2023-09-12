@@ -5,15 +5,17 @@ from longbridge.openapi import TradeContext, Config, OrderStatus, OrderType, Ord
 from app import models as md
 from app import emails
 from app import database as db
+import concurrent.futures
 
 
 def init():
+    # Long Bridge initialization
     config = Config.from_env()
     return TradeContext(config)
 
 
 def calculate_commission(price, position, direction):
-    # Long Bridge commission free
+    # Long Bridge commission fee
     res = max(1, 0.005 * position) + 0.003 * position
 
     if direction == "Sell":
@@ -23,6 +25,7 @@ def calculate_commission(price, position, direction):
 
 
 def get_current_position(ctx, ticker):
+    # get the Long Bridge account's position according to the ticker
     resp = ctx.stock_positions()
     for channel in resp.channels:
         for item in channel.positions:
@@ -31,6 +34,7 @@ def get_current_position(ctx, ticker):
 
 
 def update_longbridge_trading(datetime, ticker, interval, position, ta_recommendation, yf_signal, potential_reference, email, direction, order_id, handling_fee, price_cost):
+    # Update to the database, longbridge trading
     cnx = db.connect_to_db()
     cursor = cnx.cursor()
 
@@ -44,9 +48,9 @@ def update_longbridge_trading(datetime, ticker, interval, position, ta_recommend
 
 
 def day_trade(email, ticker, interval, quantity):
-    ctx = init()
+    # ctx = init()
     today = datetime.today()
-    flag_sent_report = False
+    # flag_sent_report = False
 
     longbridge_trading = [{
         "datetime": datetime.now(),
@@ -65,6 +69,8 @@ def day_trade(email, ticker, interval, quantity):
 
     while True:
         try:
+            print(f"%s %5s %3s %s" % (today.strftime('%Y/%m/%d %H:%M:%S'), ticker, interval, email))
+
             # 1. Get the recommendations from TradingView
             handler = TA_Handler(
                 symbol=ticker,
@@ -100,21 +106,19 @@ def day_trade(email, ticker, interval, quantity):
                     price_cost = price_close + handling_fee / quantity
                     position = quantity
 
-                    subject = f"Order filled: buy {ticker} at ${price_close:,.2f}"
-                    body = f"Ticker: {ticker}\nPrice: ${price_close:,.2f}\nQuantity: ${quantity}\nHandling Fee: ${handling_fee:,.2f}\nDatetime: {today.strftime('%Y/%m/%d HH:MM:SS')}"
-                    emails.send_email(email, f"Subject: {subject}\n{body}")
-
+                    subject = f"Order filled: buy {ticker} at ${price_close: ,.2f}"
+                    body = f"Interval: {interval}\nTicker: {ticker}\nPrice: ${price_close: ,.2f}\nQuantity: {quantity}\nHandling Fee: ${handling_fee:,.2f}\nCash: -${price_close * quantity + handling_fee: ,.2f}\nDatetime: {today.strftime('%Y/%m/%d %H:%M:%S (HKT)')}"
+                    emails.send_email(email, f"Subject: {subject}\n\n{body}")
             elif position > 0:
-                if yf_signal == "PotentialSell" and ((ta_recommendation == "SELL" or ta_recommendation == "STRONG_SELL") or price_close >= price_cost * (1 + take_profit_limit) or price_close <= price_cost * (1 - stop_loss_limit)):
+                if (yf_signal == "PotentialSell" and ((ta_recommendation == "SELL" or ta_recommendation == "STRONG_SELL") or price_close >= price_cost * (1 + take_profit_limit))) or price_close <= price_cost * (1 - stop_loss_limit):
                     direction = "Sell"
                     handling_fee = calculate_commission(price_close, quantity, direction)
                     price_cost = price_close - handling_fee / quantity
                     position = 0
 
-                    subject = f"Order filled: sell {ticker} at ${price_close:,.2f}"
-                    body = f"Ticker: {ticker}\nPrice: ${price_close:,.2f}\nQuantity: ${quantity}\nHandling Fee: ${handling_fee:,.2f}\nDatetime: {today.strftime('%Y/%m/%d HH:MM:SS')}"
-                    emails.send_email(email, f"Subject: {subject}\n{body}")
-
+                    subject = f"Order filled: sell {ticker} at ${price_close: ,.2f}"
+                    body = f"Interval: {interval}\nTicker: {ticker}\nPrice: ${price_close: ,.2f}\nQuantity: {quantity}\nHandling Fee: ${handling_fee: ,.2f}\nCash: +${price_close * quantity - handling_fee: ,.2f}\nDatetime: {today.strftime('%Y/%m/%d %H:%M:%S (HKT)')}"
+                    emails.send_email(email, f"Subject: {subject}\n\n{body}")
             # End   Trading zone
 
             longbridge_trading.append({
@@ -135,6 +139,27 @@ def day_trade(email, ticker, interval, quantity):
             update_longbridge_trading(datetime.now(), ticker, interval, position, ta_recommendation, yf_signal, price_close, email, direction, order_id, handling_fee, price_cost)
 
         except Exception as e:
-            print(f"Error ({e}): {ticker}")
+            print(f"{ticker} Error: {e}")
 
-        time.sleep(20)
+        time.sleep(30)
+
+
+tickers = ["QQQ", "MSFT", "AMZN", "NVDA", "META", "TSM", "AMD", "JPM", "TSLA"]
+email = "usstockstrading@outlook.sg"
+# email = "lightwing.ng@gmail.com"
+interval = "1m"
+quantity = 100
+
+with concurrent.futures.ThreadPoolExecutor() as executor:
+    futures = {}
+    for ticker in tickers:
+        futures[executor.submit(day_trade, email, ticker, interval, quantity)] = ticker
+        time.sleep(1)
+    for future in concurrent.futures.as_completed(futures):
+        ticker = futures[future]
+        try:
+            result = future.result()
+        except Exception as exc:
+            print(f'{ticker} generated an exception: {exc}')
+        else:
+            print(f'{ticker} returned {result}')
