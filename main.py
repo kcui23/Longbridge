@@ -4,7 +4,7 @@ from flask import Flask, render_template, request
 from app import views
 from app import emails
 from app import models as md
-from app import longbridge_day_trade
+from app import longbridgeRealTrading
 
 app = Flask(__name__, template_folder="app/templates/", static_folder="app/static/")
 
@@ -62,7 +62,7 @@ def execute_longbridge_day_trade():
         interval = request.form["interval"]
         quantity = request.form["customQuantity"]
 
-        longbridge_day_trade.day_trade(email, ticker, interval, quantity)
+        longbridgeRealTrading.day_trade(email, ticker, interval, quantity)
 
     return render_template("longbridge_day_trade.html")
 
