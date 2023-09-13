@@ -2,6 +2,9 @@ import time
 from datetime import datetime
 from app import models as md
 from app import database as db
+from app import emails
+from app import longbridgeRealTrading as lb
+import concurrent.futures
 
 
 def test_single_stock(ticker: str, trade_day: str, principal: float) -> None:
@@ -39,11 +42,44 @@ def test_all_stocks(trade_day: str, principal: float) -> None:
             ))
 
 
+def test_longbridge_trading(email, interval, quantity):
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = {}
+
+        for ticker in md.ticker_exchanges:
+            futures[executor.submit(lb.day_trade, email, ticker, interval, quantity)] = ticker
+            time.sleep(1)
+        for future in concurrent.futures.as_completed(futures):
+            ticker = futures[future]
+            try:
+                result = future.result()
+            except Exception as exc:
+                print(f'{ticker} generated an exception: {exc}')
+            else:
+                print(f'{ticker} returned {result}')
+
+
+def test_email_notification(email):
+    while True:
+        for interval in {"1m", "15m", "30m"}:
+            for ticker in md.ticker_exchanges:
+                emails.email_notification(ticker, interval, email)
+                time.sleep(0.5)
+
+
 today = datetime.today()
 date_string_today = today.strftime("%Y-%m-%d")
 
 if __name__ == "__main__":
     # test_single_stock("NVDA", date_string_today, 10000.00)
     start_time = time.time()
+
+    # 1. Test paper trade
     test_all_stocks(date_string_today, 10000.00)
+
+    # 2. Test
+    # with concurrent.futures.ThreadPoolExecutor() as executor:
+    #     executor.submit(test_longbridge_trading, "lightwing.ng@gmail.com", "1m", 100)
+    #     executor.submit(test_email_notification, "usstockstrading@outlook.sg")
+
     print(f"Elapsed time: {time.time() - start_time:.2f} seconds")
