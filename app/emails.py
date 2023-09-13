@@ -78,9 +78,9 @@ def email_notification(ticker: str, interval: str, email: str) -> None:
                 break
 
         if signal_buy:
-            print(f"{ticker:5s} Buy  {datetime_buy} {price_buy:,.2f}")
+            print(f"{ticker:5s} ({interval}) Buy  {datetime_buy} {price_buy:,.2f}")
         if signal_sell:
-            print(f"{ticker:5s} Sell {datetime_sell} {price_sell:,.2f}")
+            print(f"{ticker:5s} ({interval}) Sell {datetime_sell} {price_sell:,.2f}")
 
         recommendation = analysis.summary["RECOMMENDATION"]
         if (recommendation == "STRONG_BUY") and (signal_buy and price_close <= price_buy):
