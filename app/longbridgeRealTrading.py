@@ -5,7 +5,6 @@ from longbridge.openapi import TradeContext, Config, OrderStatus, OrderType, Ord
 from app import models as md
 from app import emails
 from app import database as db
-import concurrent.futures
 
 
 def init():
@@ -141,25 +140,4 @@ def day_trade(email, ticker, interval, quantity):
         except Exception as e:
             print(f"{ticker} Error: {e}")
 
-        time.sleep(30)
-
-
-tickers = ["QQQ", "MSFT", "AMZN", "NVDA", "META", "TSM", "AMD", "JPM", "TSLA"]
-email = "usstockstrading@outlook.sg"
-# email = "lightwing.ng@gmail.com"
-interval = "1m"
-quantity = 100
-
-with concurrent.futures.ThreadPoolExecutor() as executor:
-    futures = {}
-    for ticker in tickers:
-        futures[executor.submit(day_trade, email, ticker, interval, quantity)] = ticker
-        time.sleep(1)
-    for future in concurrent.futures.as_completed(futures):
-        ticker = futures[future]
-        try:
-            result = future.result()
-        except Exception as exc:
-            print(f'{ticker} generated an exception: {exc}')
-        else:
-            print(f'{ticker} returned {result}')
+        time.sleep(20)
