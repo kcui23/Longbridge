@@ -3,7 +3,7 @@ from datetime import datetime
 from app import models as md
 from app import database as db
 from app import emails
-from app import longbridgeRealTrading as lb
+from app import longbridgeRealTrading
 import concurrent.futures
 
 
@@ -47,7 +47,7 @@ def test_longbridge_trading(email, interval, quantity):
         futures = {}
 
         for ticker in md.ticker_exchanges:
-            futures[executor.submit(lb.day_trade, email, ticker, interval, quantity)] = ticker
+            futures[executor.submit(longbridgeRealTrading.day_trade, email, ticker, interval, quantity)] = ticker
             time.sleep(1)
         for future in concurrent.futures.as_completed(futures):
             ticker = futures[future]
@@ -75,11 +75,11 @@ if __name__ == "__main__":
     start_time = time.time()
 
     # 1. Test paper trade
-    test_all_stocks(date_string_today, 10000.00)
+    # test_all_stocks(date_string_today, 10000.00)
 
-    # 2. Test
-    # with concurrent.futures.ThreadPoolExecutor() as executor:
-    #     executor.submit(test_longbridge_trading, "lightwing.ng@gmail.com", "1m", 100)
-    #     executor.submit(test_email_notification, "usstockstrading@outlook.sg")
+    # 2. Test concurrently
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.submit(test_longbridge_trading, "lightwing.ng@gmail.com", "1m", 100)
+        executor.submit(test_email_notification, "usstockstrading@outlook.sg")
 
     print(f"Elapsed time: {time.time() - start_time:.2f} seconds")
