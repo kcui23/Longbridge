@@ -100,4 +100,4 @@ def email_notification(ticker: str, interval: str, email: str) -> None:
                 send_email(email, message)
 
     except Exception as e:
-        print(f"Error ({e}): {ticker}")
+        print(f"{ticker} Error: {e}")
