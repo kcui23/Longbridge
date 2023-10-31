@@ -2,6 +2,16 @@
 **/__pycache__/
 **/.idea/
 
-# emacs
+# Emacs
 *#*
 *~*
+
+# Environments
+.env
+.venv
+env/
+venv/
+longbridge/
+ENV/
+env.bak/
+venv.bak/
