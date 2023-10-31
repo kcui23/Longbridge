@@ -18,17 +18,19 @@ ticker_exchanges = {
         "AVGO", "TSLA", "PEP", "QQQ"]
     else "NYSE" for ticker in [
         "MSFT", "NVDA", "GOOGL", "TSM", "AMZN",
-        "META", "ORCL", "AMD", "ADBE", "QCOM",
-        "NFLX", "ASML", "AVGO", "VZ", "GS",
-        "JPM", "MS", "WFC", "BAC", "C",
-        "V", "MA", "AXP", "TSLA", "QQQ",
+        "META", "ORCL", "AMD", "QCOM", "GS",
+        "JPM", "MS", "V", "MA", "AXP", "TSLA",
+        "QQQ",
+
+        "NFLX", "ASML", "AVGO", "VZ", "ADBE",
+        "WFC", "BAC", "C",
         "MCD", "KO", "PEP", "PG", "ABBV",
         "MRK", "LLY", "UNH", "PFE", "JNJ",
         "XOM", "CVX"
     ]}
 
 interval_type = {
-    "1m": 3, "5m": 3, "15m": 3, "30m": 30, "60m": 30, "1d": 365
+    "1m": 3, "5m": 3, "15m": 3, "30m": 30, "60m": 30, "1d": 500
 }
 
 intervals = {
@@ -398,7 +400,7 @@ def plot_stock_screener(df, ticker):
     kdj_j = mpf.make_addplot(df["J"], ax=ax4, color="#ffa500", width=line_width)
 
     plots = [vwap, macd_DIF, macd_DEM, macd_Histogram, rsi, crsi, kdj_k, kdj_d, kdj_j]
-    file_name = "../images/" + distinguish_interval(df) + " " + ticker + " " + str(df["Datetime"][0])[:10] + " " + str(
+    file_name = "images/" + distinguish_interval(df) + " " + ticker + " " + str(df["Datetime"][0])[:10] + " " + str(
         df["Datetime"][len(df) - 1])[:10]
 
     mpf.plot(
