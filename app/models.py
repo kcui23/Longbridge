@@ -11,23 +11,16 @@ from datetime import datetime, timedelta
 from typing import Optional
 from tradingview_ta import Interval
 
+ticker_list = [
+        'AAPL'
+    ]
+
 ticker_exchanges = {
     ticker: "NASDAQ" if ticker in [
         "MSFT", "NVDA", "GOOGL", "AMZN", "META",
         "AMD", "ADBE", "QCOM", "NFLX", "ASML",
         "AVGO", "TSLA", "PEP", "QQQ"]
-    else "NYSE" for ticker in [
-        "MSFT", "NVDA", "GOOGL", "TSM", "AMZN",
-        "META", "ORCL", "AMD", "QCOM", "GS",
-        "JPM", "MS", "V", "MA", "AXP", "TSLA",
-        "QQQ",
-
-        "NFLX", "ASML", "AVGO", "VZ", "ADBE",
-        "WFC", "BAC", "C",
-        "MCD", "KO", "PEP", "PG", "ABBV",
-        "MRK", "LLY", "UNH", "PFE", "JNJ",
-        "XOM", "CVX"
-    ]}
+    else "NYSE" for ticker in ticker_list}
 
 interval_type = {
     "1m": 3, "5m": 3, "15m": 3, "30m": 30, "60m": 30, "1d": 500
