@@ -2,8 +2,8 @@ from app import models as md
 
 if __name__ == "__main__":
 
-    trade_day = '2023-10-30'
-    principal = 10000.00
+    trade_day = '2023-10-31'
+    principal = 1480.00
 
     for ticker, _ in md.ticker_exchanges.items():
         for interval, value in md.interval_type.items():
@@ -13,10 +13,10 @@ if __name__ == "__main__":
             md.print_realtime_ratting(df)
             md.plot_stock_screener(df, ticker)
 
-            print("\n%-5s (%s)\nFrom %s\nTo   %s\nEarning %13s" % (
+            print("\n{:<5} ({})\nFrom {}\nTo   {}\nEarning {:>13}".format(
                 ticker,
                 md.distinguish_interval(df),
-                str(df["Datetime"][0])[:16],
-                str(df["Datetime"][len(df) - 1])[:16],
-                f"{md.print_trade_records(df) - principal:,.2f}",
+                str(df["Datetime"].iloc[0])[:16],
+                str(df["Datetime"].iloc[len(df) - 1])[:16],
+                "{:,.2f}".format(md.print_trade_records(df) - principal)
             ))
