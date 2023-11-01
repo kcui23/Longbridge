@@ -39,47 +39,47 @@ intervals = {
 def print_realtime_ratting(df):
     print("\nDatetime\t\t\tDIR\t\tPrice\tVWAP\tCRSI\tKDJ")
     for i in range(len(df)):
-        current = df["BuyIndex"][i]
+        current = df["BuyIndex"].iloc[i]
         if current == "Buy" or current == "PotentialBuy":
             print("%s\t\033[31mBuy \t%.2f\033[0m\t%5.2f\t%5.2f\t%6.2f" % (
-                str(df["Datetime"][i])[:16],
-                df["Low"][i],
-                df["VWAP"][i],
-                df["CRSI"][i],
-                df["KDJ"][i]))
+                str(df["Datetime"].iloc[i])[:16],
+                df["Low"].iloc[i],
+                df["VWAP"].iloc[i],
+                df["CRSI"].iloc[i],
+                df["KDJ"].iloc[i]))
         elif current == "Sell" or current == "PotentialSell":
             print("%s\t\033[34mSell\t%.2f\033[0m\t%5.2f\t%5.2f\t%6.2f" % (
-                str(df["Datetime"][i])[:16],
-                df["High"][i],
-                df["VWAP"][i],
-                df["CRSI"][i],
-                df["KDJ"][i]))
+                str(df["Datetime"].iloc[i])[:16],
+                df["High"].iloc[i],
+                df["VWAP"].iloc[i],
+                df["CRSI"].iloc[i],
+                df["KDJ"].iloc[i]))
 
 
 def print_trade_records(df):
     print("\nDatetime\t\t\tDIR\t\tPrice\tPSN\t\tCMS\t\tBalance\t\tTotal\t\tRemarks")
     for i in range(len(df)):
-        direction = df["BuyIndex"][i]
+        direction = df["BuyIndex"].iloc[i]
 
         if direction == "Buy" or direction == "Sell":
             print("%s\t%-4s\t%5.2f\t%5d\t%6.2f\t%10s\t%10s\t%s" % (
-                str(df["Datetime"][i])[:16],
-                df["BuyIndex"][i],
-                df["Low"][i] if df["BuyIndex"][i] == "Buy" else df["High"][i],
-                df["Position"][i] if df["Position"][i] > 0 else df["Position"][i - 1],
-                df["Commission"][i],
-                f"{df['Balance'][i]:,.2f}",
-                f"{df['TotalAssets'][i]:,.2f}",
-                df["Remarks"][i]))
+                str(df["Datetime"].iloc[i])[:16],
+                df["BuyIndex"].iloc[i],
+                df["Low"].iloc[i] if df["BuyIndex"].iloc[i] == "Buy" else df["High"].iloc[i],
+                df["Position"].iloc[i] if df["Position"].iloc[i] > 0 else df["Position"].iloc[i - 1],
+                df["Commission"].iloc[i],
+                f"{df['Balance'].iloc[i]:,.2f}",
+                f"{df['TotalAssets'].iloc[i]:,.2f}",
+                df["Remarks"].iloc[i]))
 
-    return df["TotalAssets"][len(df) - 1]
+    return df["TotalAssets"].iloc[len(df) - 1]
 
 
 def distinguish_interval(df):
     res = {60: "1m", 300: "5m", 900: "15m", 1800: "30m", 3600: "60m", 86400: "1d"}
 
-    datetime_first = datetime.strptime(str(df["Datetime"][0])[:19], "%Y-%m-%d %H:%M:%S")
-    datetime_second = datetime.strptime(str(df["Datetime"][1])[:19], "%Y-%m-%d %H:%M:%S")
+    datetime_first = datetime.strptime(str(df["Datetime"].iloc[0])[:19], "%Y-%m-%d %H:%M:%S")
+    datetime_second = datetime.strptime(str(df["Datetime"].iloc[1])[:19], "%Y-%m-%d %H:%M:%S")
     difference = int((datetime_second - datetime_first).total_seconds())
 
     return res.get(difference, None)
@@ -100,19 +100,19 @@ def generate_US_trade_days(start_date, end_date):
 def find_signals(df):
     # Mark all potential buy / sell timings
     df["BuyIndex"] = ""
-    flag_can_start = False  # Can visit df["DIF"][i - 1]
+    flag_can_start = False  # Can visit df["DIF"].iloc[i - 1]
 
     for i in range(len(df)):
 
-        DIF = df["DIF"][i]
-        DEM = df["DEM"][i]
-        K = df["K"][i]
-        D = df["D"][i]
-        J = df["J"][i]
+        DIF = df["DIF"].iloc[i]
+        DEM = df["DEM"].iloc[i]
+        K = df["K"].iloc[i]
+        D = df["D"].iloc[i]
+        J = df["J"].iloc[i]
 
         if flag_can_start:
-            DIF_last = df["DIF"][i - 1]
-            DEM_last = df["DEM"][i - 1]
+            DIF_last = df["DIF"].iloc[i - 1]
+            DEM_last = df["DEM"].iloc[i - 1]
 
             if (DIF > DEM and DIF_last < DEM_last) and (J > K and J > D):
                 df.iloc[i, df.columns.get_loc("BuyIndex")] = "PotentialBuy"
@@ -148,8 +148,8 @@ def paper_trade(df, principal):
 
     def buy(i):
         direction = "Buy"
-        balance = df["Balance"][i]
-        current_price = df["Low"][i]
+        balance = df["Balance"].iloc[i]
+        current_price = df["Low"].iloc[i]
         position = calculate_buy_position(current_price, balance, direction)
         commission = calculate_commission(current_price, position, direction)
         balance = balance - current_price * position - commission
@@ -162,9 +162,9 @@ def paper_trade(df, principal):
 
     def sell(i):
         direction = "Sell"
-        balance = df["Balance"][i]
-        current_price = df["High"][i]
-        position = df["Position"][i]
+        balance = df["Balance"].iloc[i]
+        current_price = df["High"].iloc[i]
+        position = df["Position"].iloc[i]
         commission = calculate_commission(current_price, position, direction)
 
         df.iloc[i, df.columns.get_loc("Position")] = 0
@@ -187,14 +187,14 @@ def paper_trade(df, principal):
     count_operation = 0  # Mark to make first buy in PotentialBuy
 
     for i in range(len(df)):
-        df.iloc[i, df.columns.get_loc("Balance")] = df["Balance"][i - 1]
-        df.iloc[i, df.columns.get_loc("Position")] = df["Position"][i - 1]
-        df.iloc[i, df.columns.get_loc("Cost")] = df["Cost"][i - 1]
+        df.iloc[i, df.columns.get_loc("Balance")] = df["Balance"].iloc[i - 1]
+        df.iloc[i, df.columns.get_loc("Position")] = df["Position"].iloc[i - 1]
+        df.iloc[i, df.columns.get_loc("Cost")] = df["Cost"].iloc[i - 1]
 
-        position = df["Position"][i]
-        direction = df["BuyIndex"][i]
-        current_price = df["High"][i]
-        last_buy_price = df["Cost"][i]
+        position = df["Position"].iloc[i]
+        direction = df["BuyIndex"].iloc[i]
+        current_price = df["High"].iloc[i]
+        last_buy_price = df["Cost"].iloc[i]
 
         if position == 0:
             if direction == "PotentialBuy":
@@ -219,11 +219,9 @@ def paper_trade(df, principal):
                 res = last_buy_price * (1 - stop_loss_limit)
                 df.iloc[i, df.columns.get_loc("Remarks")] = "(%d) <= %.2f Stop loss" % (count_operation, res)
 
-        df.iloc[i, df.columns.get_loc("TotalAssets")] = df["Balance"][i] if df["Position"][i] == 0 else df["Balance"][
-                                                                                                            i] + \
-                                                                                                        df["Close"][i] * \
-                                                                                                        df["Position"][
-                                                                                                            i]
+        df.iloc[i, df.columns.get_loc("TotalAssets")] = df["Balance"].iloc[i] if df["Position"].iloc[i] == 0 else df["Balance"].iloc[i] + \
+                                                                                                        df["Close"].iloc[i] * \
+                                                                                                        df["Position"].iloc[i]
 
     return df
 
@@ -291,7 +289,7 @@ def plot_stock_screener(df, ticker):
 
     def add_vertical_lines(ax):
         for i in range(len(df)):
-            current = df["BuyIndex"][i]
+            current = df["BuyIndex"].iloc[i]
             if current == "Buy" or current == "PotentialBuy":
                 ax.axvline(x=i, ymin=0, ymax=5.5, c="#ff2f92", linewidth=0.25, alpha=0.65, zorder=0, clip_on=False)
             elif current == "Sell" or current == "PotentialSell":
@@ -304,50 +302,50 @@ def plot_stock_screener(df, ticker):
         alpha_value = 0.8
 
         for i in range(len(df)):
-            current = df["BuyIndex"][i]
+            current = df["BuyIndex"].iloc[i]
             if current == "Buy":
-                text = "B\n" + f"{df['Low'][i]:,.2f}"
+                text = "B\n" + f"{df['Low'].iloc[i]:,.2f}"
                 ax.annotate(
-                    text, xy=(i, df['Low'][i]),
-                    xytext=(i, df["Low"][i] - height / height_offset), color="#ffffff", fontsize=8,
+                    text, xy=(i, df['Low'].iloc[i]),
+                    xytext=(i, df["Low"].iloc[i] - height / height_offset), color="#ffffff", fontsize=8,
                     bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.25", facecolor="#ff2f92",
                               edgecolor="none", alpha=alpha_value))
             elif current == "PotentialBuy":
                 ax.annotate(
-                    f"{df['Low'][i]:,.2f}",
-                    xy=(i, df['Low'][i]),
-                    xytext=(i, df["Low"][i] - height / height_offset), color="#ffffff", fontsize=7,
+                    f"{df['Low'].iloc[i]:,.2f}",
+                    xy=(i, df['Low'].iloc[i]),
+                    xytext=(i, df["Low"].iloc[i] - height / height_offset), color="#ffffff", fontsize=7,
                     bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.25", facecolor="#ff2f92",
                               edgecolor="none", alpha=alpha_value))
             elif current == "Sell":
-                text = "S\n" + f"{df['High'][i]:,.2f}"
+                text = "S\n" + f"{df['High'].iloc[i]:,.2f}"
                 ax.annotate(
                     text,
-                    xy=(i, df['High'][i]),
-                    xytext=(i, df["High"][i] + height / height_offset), color="#ffffff", fontsize=8,
+                    xy=(i, df['High'].iloc[i]),
+                    xytext=(i, df["High"].iloc[i] + height / height_offset), color="#ffffff", fontsize=8,
                     bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.25", facecolor="#0055cc",
                               edgecolor="none", alpha=alpha_value))
             elif current == "PotentialSell":
                 ax.annotate(
-                    f"{df['High'][i]:,.2f}",
-                    xy=(i, df['Low'][i]),
-                    xytext=(i, df["Low"][i] + height / height_offset), color="#ffffff", fontsize=7,
+                    f"{df['High'].iloc[i]:,.2f}",
+                    xy=(i, df['Low'].iloc[i]),
+                    xytext=(i, df["Low"].iloc[i] + height / height_offset), color="#ffffff", fontsize=7,
                     bbox=dict(boxstyle="round, pad=0.15, rounding_size=0.25", facecolor="#0055cc",
                               edgecolor="none", alpha=alpha_value))
 
             if current == "Buy" or current == "PotentialBuy":
                 ax.axvline(
                     x=i,
-                    ymin=(df["Low"][i] - min(df["Low"]) - (height / height_offset) / 2) / height,
-                    ymax=(df["Low"][i] - min(df["Low"]) - (height / height_offset) / 5) / height,
+                    ymin=(df["Low"].iloc[i] - min(df["Low"]) - (height / height_offset) / 2) / height,
+                    ymax=(df["Low"].iloc[i] - min(df["Low"]) - (height / height_offset) / 5) / height,
                     c="#ff2f92",
                     linewidth=0,
                     alpha=alpha_value, zorder=0, clip_on=False)
             elif current == "Sell" or current == "PotentialSell":
                 ax.axvline(
                     x=i,
-                    ymin=(df["High"][i] - min(df["High"]) + (height / height_offset) / 5) / height,
-                    ymax=(df["High"][i] - min(df["High"]) + (height / height_offset) / 2) / height,
+                    ymin=(df["High"].iloc[i] - min(df["High"]) + (height / height_offset) / 5) / height,
+                    ymax=(df["High"].iloc[i] - min(df["High"]) + (height / height_offset) / 2) / height,
                     c="#0055cc",
                     linewidth=0,
                     alpha=alpha_value, zorder=0, clip_on=False)
@@ -393,8 +391,8 @@ def plot_stock_screener(df, ticker):
     kdj_j = mpf.make_addplot(df["J"], ax=ax4, color="#ffa500", width=line_width)
 
     plots = [vwap, macd_DIF, macd_DEM, macd_Histogram, rsi, crsi, kdj_k, kdj_d, kdj_j]
-    file_name = "images/" + distinguish_interval(df) + " " + ticker + " " + str(df["Datetime"][0])[:10] + " " + str(
-        df["Datetime"][len(df) - 1])[:10]
+    file_name = "images/" + distinguish_interval(df) + " " + ticker + " " + str(df["Datetime"].iloc[0])[:10] + " " + str(
+        df["Datetime"].iloc[len(df) - 1])[:10]
 
     mpf.plot(
         df, type="candle", ax=ax1, style=s, addplot=plots,
@@ -417,6 +415,7 @@ def plot_stock_screener(df, ticker):
 
 def get_df_interval(ticker: str, trade_date: str, interval: str, days: int) -> Optional[pd.DataFrame]:
     current_date = datetime.now()
+    # current_date = pendulum.parse(trade_date + " 23:59:59")
     start_date = (current_date - timedelta(days=days)).strftime("%Y-%m-%d")
     start_time = pendulum.parse(start_date + " 00:00:00")
     end_time = pendulum.parse(trade_date + " 23:59:59")
