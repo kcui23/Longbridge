@@ -37,7 +37,7 @@ intervals = {
 
 
 def print_realtime_ratting(df):
-    print("\nDatetime\t\t\tDIR\t\tPrice\tVWAP\tCRSI\tKDJ")
+    print("\nDatetime\t\tDIR\tPrice\tVWAP\tCRSI\tKDJ")
     for i in range(len(df)):
         current = df["BuyIndex"].iloc[i]
         if current == "Buy" or current == "PotentialBuy":
@@ -57,19 +57,21 @@ def print_realtime_ratting(df):
 
 
 def print_trade_records(df):
-    print("\nDatetime\t\t\tDIR\t\tPrice\tPSN\t\tCMS\t\tBalance\t\tTotal\t\tRemarks")
+    title_format = "{:<19} {:<7} {:<8} {:<5} {:<8} {:<10} {:<10} {}"
+    print(title_format.format("Datetime", "DIR", "Price", "PSN", "CMS", "Balance", "Total", "Remarks"))
+
     for i in range(len(df)):
         direction = df["BuyIndex"].iloc[i]
 
         if direction == "Buy" or direction == "Sell":
-            print("%s\t%-4s\t%5.2f\t%5d\t%6.2f\t%10s\t%10s\t%s" % (
+            print(title_format.format(
                 str(df["Datetime"].iloc[i])[:16],
                 df["BuyIndex"].iloc[i],
-                df["Low"].iloc[i] if df["BuyIndex"].iloc[i] == "Buy" else df["High"].iloc[i],
+                "{:,.2f}".format(df["Low"].iloc[i] if df["BuyIndex"].iloc[i] == "Buy" else df["High"].iloc[i]),
                 df["Position"].iloc[i] if df["Position"].iloc[i] > 0 else df["Position"].iloc[i - 1],
-                df["Commission"].iloc[i],
-                f"{df['Balance'].iloc[i]:,.2f}",
-                f"{df['TotalAssets'].iloc[i]:,.2f}",
+                "{:,.2f}".format(df["Commission"].iloc[i]),
+                "{:,.2f}".format(df['Balance'].iloc[i]),
+                "{:,.2f}".format(df['TotalAssets'].iloc[i]),
                 df["Remarks"].iloc[i]))
 
     return df["TotalAssets"].iloc[len(df) - 1]
