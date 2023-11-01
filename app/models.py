@@ -25,6 +25,9 @@ ticker_exchanges = {
 interval_type = {
     "1m": 3, "5m": 3, "15m": 3, "30m": 30, "60m": 30, "1d": 500
 }
+# interval_type = {
+#     "1m": 5
+# }
 
 intervals = {
     "1m": Interval.INTERVAL_1_MINUTE,
@@ -37,7 +40,7 @@ intervals = {
 
 
 def print_realtime_ratting(df):
-    print("\nDatetime\t\tDIR\tPrice\tVWAP\tCRSI\tKDJ")
+    print("Datetime\t\tDIR\tPrice\tVWAP\tCRSI\tKDJ")
     for i in range(len(df)):
         current = df["BuyIndex"].iloc[i]
         if current == "Buy" or current == "PotentialBuy":
@@ -142,6 +145,8 @@ def paper_trade(df, principal):
     def calculate_commission(price, position, direction):
         # Long Bridge commission free
         res = max(1, 0.005 * position) + 0.003 * position
+        # 达到入金$10,000前要产生交易佣金
+        res += max(0.99, 0.0049 * position)
 
         if direction == "Sell":
             res += max(0.01, 0.000008 * price * position) + min(7.27, max(0.01, 0.000145 * position))
@@ -213,13 +218,13 @@ def paper_trade(df, principal):
                 sell(i)
                 count_operation += 1
                 res = last_buy_price * (1 + take_profit_limit)
-                df.iloc[i, df.columns.get_loc("Remarks")] = "(%d) >= %.2f Take profit" % (
+                df.iloc[i, df.columns.get_loc("Remarks")] = "(%d) >= \033[38;5;81m%.2f Take profit\033[0m" % (
                     count_operation, res)
             elif current_price <= last_buy_price * (1 - stop_loss_limit):
                 sell(i)
                 count_operation += 1
                 res = last_buy_price * (1 - stop_loss_limit)
-                df.iloc[i, df.columns.get_loc("Remarks")] = "(%d) <= %.2f Stop loss" % (count_operation, res)
+                df.iloc[i, df.columns.get_loc("Remarks")] = "(%d) <= \033[38;5;124m%.2f Stop loss\033[0m" % (count_operation, res)
 
         df.iloc[i, df.columns.get_loc("TotalAssets")] = df["Balance"].iloc[i] if df["Position"].iloc[i] == 0 else df["Balance"].iloc[i] + \
                                                                                                         df["Close"].iloc[i] * \
