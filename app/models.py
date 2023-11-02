@@ -12,7 +12,7 @@ from typing import Optional
 from tradingview_ta import Interval
 
 ticker_list = [
-        'AAPL'
+        'AAPL', "2359.HK", "0981.HK", "2601.HK", "0728.HK"
     ]
 
 ticker_exchanges = {
@@ -133,7 +133,7 @@ def find_signals(df):
     return df
 
 
-def paper_trade(df, principal):
+def paper_trade(df, principal, market):
     def calculate_buy_position(price, balance, direction):
         for i in range(int(balance / price) + 1, -1, -1):
             rest = balance - price * i - calculate_commission(price, i, direction)
@@ -144,13 +144,20 @@ def paper_trade(df, principal):
 
     def calculate_commission(price, position, direction):
         # Long Bridge commission free
-        res = max(1, 0.005 * position) + 0.003 * position
-        # 达到入金$10,000前要产生交易佣金
-        res += max(0.99, 0.0049 * position)
+        if market == "US":
+            res = max(1, 0.005 * position) + 0.003 * position
+            # 达到入金$10,000前要产生交易佣金
+            res += max(0.99, 0.0049 * position)
 
-        if direction == "Sell":
-            res += max(0.01, 0.000008 * price * position) + min(7.27, max(0.01, 0.000145 * position))
-
+            if direction == "Sell":
+                res += max(0.01, 0.000008 * price * position) + min(7.27, max(0.01, 0.000145 * position))
+        elif market == "HK":
+            res = 15
+            res += min(max(2, 0.00002 * price * position), 100)
+            res += max((0.0000565 + 0.000027 + 0.0000015) * price * position, 0.01)
+            
+            if direction == "Sell":
+                res += (0.0013 * price * position).__ceil__()
         return res
 
     def buy(i):
@@ -218,13 +225,13 @@ def paper_trade(df, principal):
                 sell(i)
                 count_operation += 1
                 res = last_buy_price * (1 + take_profit_limit)
-                df.iloc[i, df.columns.get_loc("Remarks")] = "(%d) >= \033[38;5;81m%.2f Take profit\033[0m" % (
+                df.iloc[i, df.columns.get_loc("Remarks")] = "(%d) >= \033[38;5;27m\033[1m%.2f Take profit\033[0m" % (
                     count_operation, res)
             elif current_price <= last_buy_price * (1 - stop_loss_limit):
                 sell(i)
                 count_operation += 1
                 res = last_buy_price * (1 - stop_loss_limit)
-                df.iloc[i, df.columns.get_loc("Remarks")] = "(%d) <= \033[38;5;124m%.2f Stop loss\033[0m" % (count_operation, res)
+                df.iloc[i, df.columns.get_loc("Remarks")] = "(%d) <= \033[38;5;178m\033[1m%.2f Stop loss\033[0m" % (count_operation, res)
 
         df.iloc[i, df.columns.get_loc("TotalAssets")] = df["Balance"].iloc[i] if df["Position"].iloc[i] == 0 else df["Balance"].iloc[i] + \
                                                                                                         df["Close"].iloc[i] * \
@@ -421,8 +428,8 @@ def plot_stock_screener(df, ticker):
 
 
 def get_df_interval(ticker: str, trade_date: str, interval: str, days: int) -> Optional[pd.DataFrame]:
-    current_date = datetime.now()
-    # current_date = pendulum.parse(trade_date + " 23:59:59")
+    # current_date = datetime.now()
+    current_date = pendulum.parse(trade_date + " 23:59:59")
     start_date = (current_date - timedelta(days=days)).strftime("%Y-%m-%d")
     start_time = pendulum.parse(start_date + " 00:00:00")
     end_time = pendulum.parse(trade_date + " 23:59:59")
