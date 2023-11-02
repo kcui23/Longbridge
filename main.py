@@ -18,7 +18,7 @@ if __name__ == "__main__":
             print("Interval: {}".format(interval).center(99, '-'), sep="")
             df = md.get_df_interval(ticker, trade_day, interval, value)
 
-            df = md.paper_trade(df, principal)
+            df = md.paper_trade(df, principal, market)
             print("\n", "Signals".center(62, '-'), sep="")
             md.print_realtime_ratting(df)
             md.plot_stock_screener(df, ticker)
