@@ -4,6 +4,7 @@
 .vscode/
 images/
 test/
+err.txt
 
 # Emacs
 *#*

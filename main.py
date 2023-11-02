@@ -2,10 +2,16 @@ from app import models as md
 
 if __name__ == "__main__":
 
-    trade_day = '2023-10-31'
+    trade_day = '2023-11-01'
     principal = 1480.00
 
     for ticker, _ in md.ticker_exchanges.items():
+        if ticker[-2:] == "HK":
+            principal = 1480.00 * 7.8
+            market = "HK"
+        else:
+            principal = 1480.00
+            market = "US"
         for interval, value in md.interval_type.items():
             # print ticker and interval
             print("\n\n", "Ticker: {}".format(ticker).center(99, '-'), sep="")
