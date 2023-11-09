@@ -12,7 +12,7 @@ from typing import Optional
 from tradingview_ta import Interval
 
 ticker_list = [
-        'AAPL', "2359.HK", "0981.HK", "2601.HK", "0728.HK"
+        'AAPL', "1810.HK"
     ]
 
 ticker_exchanges = {
@@ -25,9 +25,6 @@ ticker_exchanges = {
 interval_type = {
     "1m": 3, "5m": 3, "15m": 3, "30m": 30, "60m": 30, "1d": 500
 }
-# interval_type = {
-#     "1m": 5
-# }
 
 intervals = {
     "1m": Interval.INTERVAL_1_MINUTE,
