@@ -11,9 +11,11 @@ from datetime import datetime, timedelta
 from typing import Optional
 from tradingview_ta import Interval
 
+
 ticker_list = [
-        'AAPL', "1810.HK"
+        'AAPL', "1211.HK", "9999.HK", "2359.HK", "0981.HK", "1810.HK"
     ]
+
 
 ticker_exchanges = {
     ticker: "NASDAQ" if ticker in [
@@ -22,8 +24,12 @@ ticker_exchanges = {
         "AVGO", "TSLA", "PEP", "QQQ"]
     else "NYSE" for ticker in ticker_list}
 
+tmp_ticker = input("Ticker: ")
+if len(tmp_ticker) > 1:
+    ticker_exchanges = {tmp_ticker:0}
+
 interval_type = {
-    "1m": 3, "5m": 3, "15m": 3, "30m": 30, "60m": 30, "1d": 500
+    "1m": 1, "5m": 3, "15m": 3, "30m": 30, "60m": 30, "1d": 500
 }
 
 intervals = {
@@ -424,8 +430,7 @@ def plot_stock_screener(df, ticker):
     fig.savefig(file_name + ".png", transparent=False, bbox_inches='tight')
 
 
-def get_df_interval(ticker: str, trade_date: str, interval: str, days: int) -> Optional[pd.DataFrame]:
-    # current_date = datetime.now()
+def get_df_interval(ticker: str, trade_date: str, interval: str, days: int, market:str) -> Optional[pd.DataFrame]:
     current_date = pendulum.parse(trade_date + " 23:59:59")
     start_date = (current_date - timedelta(days=days)).strftime("%Y-%m-%d")
     start_time = pendulum.parse(start_date + " 00:00:00")
@@ -434,11 +439,17 @@ def get_df_interval(ticker: str, trade_date: str, interval: str, days: int) -> O
     try:
         df = yf.download(ticker, start=start_time, end=end_time, interval=interval, progress=False)
 
-        if interval == "1m" or interval == "5m":
-            df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
-        else:
-            df.index = df.index.tz_localize("UTC")
-            df.index = df.index.tz_convert("US/Eastern")
+        if market == 'US':
+            if interval == "1m" or interval == "5m":
+                df.index = pd.DatetimeIndex(df.index).tz_convert("US/Eastern").tz_localize(None)
+            else:
+                df.index = df.index.tz_localize("UTC")
+                df.index = df.index.tz_convert("US/Eastern")
+        elif market == 'HK':
+            if interval == "1m" or interval == "5m":
+                df.index = pd.DatetimeIndex(df.index).tz_convert("Asia/Hong_Kong").tz_localize(None)
+            else:
+                df.index = df.index.tz_localize("Asia/Hong_Kong")
 
         df = calculate_df(df)
         df = find_signals(df)

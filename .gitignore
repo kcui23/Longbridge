@@ -5,6 +5,7 @@
 images/
 test/
 err.txt
+backup/
 
 # Emacs
 *#*
